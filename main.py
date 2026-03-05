@@ -27,12 +27,30 @@ def finding_zero():
 
             if np.isnan(U[j, i]):
                 hits[j, i] = -1
-            elif U[j, i] * U[j, i + 1] > 300:
+            elif U[j, i] * U[j, i + 1] > 300: #this is gonna be less than 0 for separation
                 hits[j, i] = 1
-    return hits
+    return hits #hits where the zeros are found 
 
 hits = finding_zero()
 
+def wall_derivative(x):  #somehow find wall geometry derivative, this is a placeholder
+    return 2*(x)
+
+def transform_to_wall_coords(X,Y,U,V): #transform from global x and y to wall normal to wall tangent
+    U_local = np.zeros((139, 226))#this is hardcoded but it shouldnt be but im lazy!!!!!!!!!!!!!!!!!!
+    V_local = np.zeros((139, 226))
+    for x in range(0,len(X)-1):
+        wall_derivative_val = wall_derivative(x)
+        for y in range(0,len(Y)-1):
+            U_global = U[y,x]
+            V_global = V[y,x]
+
+            U_local[y,x] = (U_global + V_global*wall_derivative_val)/(np.sqrt(1+wall_derivative_val**2))
+            V_local[y,x] = (U_global*wall_derivative_val + V_global)/(np.sqrt(1+wall_derivative_val**2))
+    return U_local, V_local
+
+
+U_local, V_local = transform_to_wall_coords(X,Y,U,V)
 
 
 
@@ -51,14 +69,16 @@ plt.title("Separation")
 plt.pcolormesh(X, Y, hits, cmap='jet', vmin=-1, vmax=1)
 plt.colorbar(label='Separation ') # Adds the color legend
 
-
 plt.figure(4)
+plt.title("Rotated Velocity")
+plt.pcolormesh(X, Y, U_local, cmap='jet', vmin=0, vmax=5)
+plt.colorbar(label='Separation ') # Adds the color legend
+
+plt.figure(5)
 plt.title("Mean Velocity Profile")
 plt.pcolormesh(X, Y, ((((U**2)*(V**2))**0.5)/14.8), cmap='jet', vmin=0, vmax=3)
-plt.colorbar(label='Mean Velocity / FreeStream') # Adds the color legend
+plt.colorbar(label='Mean Velocity / Freestream velocity') # Adds the color legend
 plt.show()
-#rows between 70 and 170
-#columns between 70 and 130
 
 
 
