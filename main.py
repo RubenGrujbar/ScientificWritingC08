@@ -90,5 +90,4 @@ plt.pcolormesh(X, Y, ((((U**2)*(V**2))**0.5)/14.8), cmap='jet', vmin=0, vmax=3)
 plt.colorbar(label='Mean Velocity / Freestream velocity') # Adds the color legend
 plt.show()
 
-print('hello world')
 
