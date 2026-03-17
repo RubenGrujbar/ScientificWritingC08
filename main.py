@@ -1,4 +1,5 @@
 import numpy as np
+import pandas as pd
 import os
 from scipy.io import loadmat
 import matplotlib.pyplot as plt
@@ -11,7 +12,7 @@ from processing import finding_zero
 current_dir = os.path.dirname(__file__) #Check file path of this file
 file_path = os.path.join(current_dir, 'Dataset NACA0015 Velocity and Standard deviation.csv') #Build the file path for the dataset
 
-df = pd.read_csv(file_path) #Load dataset
+df = pd.read_csv(file_path) #Load dataset using Pandas
 
 data = mat['small']
 temp_X = data['v1']
