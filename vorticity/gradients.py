@@ -23,5 +23,6 @@ du_dx[1:-1] = (x_velocity[2:]-x_velocity[:-2]) / (x_coords[2:]-x_coords[:-2])  #
 du_dx[0]  = (x_velocity[1] - x_velocity[0]) / (x_coords[1] - x_coords[0])
 du_dx[-1] = (x_velocity[-1] - x_velocity[-2]) / (x_coords[-1] - x_coords[-2])
 
+du_dx_write = np.column_stack((x_coords, y_coords, z_coords, du_dx))
 
-np.savetxt('vorticity/gradient_results.csv', du_dx, delimiter=',', header='du_dx', comments='')
+np.savetxt('vorticity/gradient_results.csv', du_dx_write, delimiter=',', header='x_coords,y_coords,z_coords,du_dx', comments='')
