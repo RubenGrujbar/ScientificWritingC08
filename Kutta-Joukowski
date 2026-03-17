@@ -1,1 +1,24 @@
 # hello
+def circulation(x, y, u, v):
+
+    gamma = 0.0
+    n = len(x)
+
+    for i in range(n):
+        x1, y1 = x[i], y[i]
+        u1, v1 = u[i], v[i]
+
+        j = (i+1) % n
+        x2, y2 = x[j], y[j]
+        u2, v2 = u[j], v[j]
+
+        dx = x2 - x1
+        dy = y2 - y1
+
+        u_avg = (u1+u2)/2
+        v_avg = (v1+v2)/2
+
+        gamma = gamma + (dx*u_avg + dy*v_avg)
+
+    return -gamma
+
