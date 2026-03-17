@@ -21,15 +21,29 @@ url = "https://media.githubusercontent.com/media/RubenGrujbar/ScientificWritingC
 
 x, y, z, u, v, w, std_V, std_Vx, std_Vy, std_Vz = load_velocity_arrays_fast(url)
 
+import matplotlib.pyplot as plt
 
-cols = [
-    "x [mm]", "y [mm]", "z [mm]",
-    "Velocity u [m/s]", "Velocity v [m/s]", "Velocity w [m/s]",
-    "Standard deviation V [m/s]", "Standard deviation Vx [m/s]",
-    "Standard deviation Vy [m/s]", "Standard deviation Vz [m/s]"
-]
+import matplotlib.pyplot as plt
+import numpy as np
 
-df_clean = pd.DataFrame(dict(zip(cols, [x, y, z, u, v, w, std_V, std_Vx, std_Vy, std_Vz])))
-df_clean.to_csv("cleaned_dataset.csv", index=False)
+# Compute velocity magnitude
+mag = np.sqrt(u**2 + v**2 + w**2)
 
-print("Saved!")
+# Subsample to avoid overplotting (3M points is too heavy for 3D scatter)
+n = 100_000
+idx = np.random.choice(len(x), n, replace=False)
+
+fig = plt.figure(figsize=(12, 8))
+ax = fig.add_subplot(111, projection='3d')
+
+sc = ax.scatter(x[idx], y[idx], z[idx], c=u[idx], cmap='coolwarm', s=0.5, alpha=0.5)
+
+plt.colorbar(sc, ax=ax, label="Velocity u [m/s]", shrink=0.5)
+ax.set_xlabel("x [mm]")
+ax.set_ylabel("y [mm]")
+ax.set_zlabel("z [mm]")
+ax.set_title("3D scatter — u velocity (colored), 100k sample")
+
+plt.tight_layout()
+plt.show()
+
