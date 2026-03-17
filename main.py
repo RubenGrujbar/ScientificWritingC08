@@ -1,4 +1,6 @@
 import numpy as np
+import pandas as pd
+import os
 from scipy.io import loadmat
 import matplotlib.pyplot as plt
 from preprocessing import wall_derivative
@@ -8,9 +10,9 @@ from processing import finding_zero
 #mat = loadmat('C:\\School\\project 2\\small_data2.mat')
 #mat = loadmat('small_data2.mat')
 current_dir = os.path.dirname(__file__) #Check file path of this file
-file_path = os.path.join(current_dir, 'small_data2.mat') #Build the file path for the dataset
+file_path = os.path.join(current_dir, 'Dataset NACA0015 Velocity and Standard deviation.csv') #Build the file path for the dataset
 
-mat = loadmat(file_path) #Load the data from the file path
+df = pd.read_csv(file_path) #Load dataset using Pandas
 
 data = mat['small']
 temp_X = data['v1']
