@@ -6,7 +6,13 @@ from preprocessing import transform_to_wall_coords
 from processing import finding_zero
 
 #mat = loadmat('C:\\School\\project 2\\small_data2.mat')
-mat = loadmat('small_data2.mat')
+#mat = loadmat('small_data2.mat')
+
+current_dir = os.path.dirname(__file__) #Check file path of this file
+file_path = os.path.join(current_dir, 'small_data2.mat') #Build the file path for the dataset
+
+mat = loadmat(file_path) #Load the data from the file path
+
 data = mat['small']
 temp_X = data['v1']
 X = temp_X[0,0]
