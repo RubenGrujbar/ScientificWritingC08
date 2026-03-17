@@ -7,7 +7,6 @@ from processing import finding_zero
 
 #mat = loadmat('C:\\School\\project 2\\small_data2.mat')
 #mat = loadmat('small_data2.mat')
-
 current_dir = os.path.dirname(__file__) #Check file path of this file
 file_path = os.path.join(current_dir, 'small_data2.mat') #Build the file path for the dataset
 
