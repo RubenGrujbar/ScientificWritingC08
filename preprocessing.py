@@ -22,28 +22,35 @@ url = "https://media.githubusercontent.com/media/RubenGrujbar/ScientificWritingC
 x, y, z, u, v, w, std_V, std_Vx, std_Vy, std_Vz = load_velocity_arrays_fast(url)
 
 import matplotlib.pyplot as plt
-
-import matplotlib.pyplot as plt
 import numpy as np
+import pandas as pd
 
-# Compute velocity magnitude
-mag = np.sqrt(u**2 + v**2 + w**2)
+mask = (u == 0) & (v == 0) & (w == 0)
 
-# Subsample to avoid overplotting (3M points is too heavy for 3D scatter)
-n = 100_000
-idx = np.random.choice(len(x), n, replace=False)
+df = pd.DataFrame({'x': x[mask], 'z': z[mask]})
+counts = df.groupby(['x', 'z']).size().reset_index(name='count')
 
-fig = plt.figure(figsize=(12, 8))
-ax = fig.add_subplot(111, projection='3d')
+pivot = counts.pivot(index='z', columns='x', values='count').fillna(0)
 
-sc = ax.scatter(x[idx], y[idx], z[idx], c=u[idx], cmap='coolwarm', s=0.5, alpha=0.5)
-
-plt.colorbar(sc, ax=ax, label="Velocity u [m/s]", shrink=0.5)
-ax.set_xlabel("x [mm]")
-ax.set_ylabel("y [mm]")
-ax.set_zlabel("z [mm]")
-ax.set_title("3D scatter — u velocity (colored), 100k sample")
-
+plt.figure(figsize=(12, 6))
+plt.pcolormesh(pivot.columns, pivot.index, pivot.values, cmap='hot_r')
+plt.colorbar(label="Number of zero-velocity points")  
+plt.xlabel("x [mm]")
+plt.ylabel("z [mm]")
+plt.title("Zero-velocity point count per (x, z) location")
 plt.tight_layout()
 plt.show()
 
+
+df = pd.DataFrame({'x': x[mask], 'y': y[mask]})
+counts = df.groupby(['x', 'y']).size().reset_index(name='count')   
+
+pivot = counts.pivot(index='y', columns='x', values='count').fillna(0)
+plt.figure(figsize=(12, 6))
+plt.pcolormesh(pivot.columns, pivot.index, pivot.values, cmap='hot_r')
+plt.colorbar(label="Number of zero-velocity points")
+plt.xlabel("x [mm]")
+plt.ylabel("z [mm]")
+plt.title("Zero-velocity point count per (x, y) location")
+plt.tight_layout()
+plt.show()
