@@ -1,6 +1,9 @@
 import numpy as np
 from scipy.io import loadmat
 import matplotlib.pyplot as plt
+from preprocessing import wall_derivative
+from preprocessing import transform_to_wall_coords
+from processing import finding_zero
 
 #mat = loadmat('C:\\School\\project 2\\small_data2.mat')
 mat = loadmat('small_data2.mat')
