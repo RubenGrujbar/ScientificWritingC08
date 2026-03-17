@@ -46,12 +46,40 @@ rho_inf = 1.225
 url = "https://media.githubusercontent.com/media/RubenGrujbar/ScientificWritingC08/refs/heads/main/Dataset%20NACA0015%20Velocity%20and%20Standard%20deviation.csv"
 data = load_velocity_arrays_fast(url)
 
-x = data["x [mm]"]
-y = data["y [mm]"]
-u = data["Velocity u [m/s]"]
-v = data["Velocity v [m/s]"]
+# z = data["z [mm]"]
+# z_min = np.min(z)
+# m = len(z)
+# contour_values = []
 
-circ = circulation(x,y,u,v)
+
+
+# for m in range(z):
+#     if z[m] == z_min:
+#         x = data["x [mm]"]
+#         y = data["y [mm]"]
+#         u = data["Velocity u [m/s]"]
+#         v = data["Velocity v [m/s]"]
+
+#         dataset = np.column_stack([x,y,u,v])
+
+#         x_min, x_max = np.min(x), np.max(x)
+#         y_min, y_max = np.min(y), np.max(y)
+
+#         # store the indices
+#         indices = np.arange(dataset.shape[0])
+#         for i in indices: # loops through the rows
+#             rowi = dataset[i, :]
+#             if rowi[0] == x_min or rowi[1] == x_max or rowi[1] == y_min or rowi[1] == y_max:
+#                 contour_values.append(rowi)
+
+# contour_values_arr = np.array(contour_values)
+
+# x_contour = contour_values_arr[:, 0]
+# y_contour = contour_values_arr[:, 1]
+# u_contour = contour_values_arr[:, 2]
+# v_contour = contour_values_arr[:, 3]
+
+circ = circulation(x_contour,y_contour,u_contour,v_contour)
 lift = KuttaJouwkowski(rho_inf, V_inf, circ)
 
 print(lift)
