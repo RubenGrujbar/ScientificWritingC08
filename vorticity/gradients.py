@@ -1,20 +1,27 @@
 import numpy as np
 from pathlib import Path
-current_dir = Path(__file__).parent
-file_path = current_dir.parent /  "cleaned_dataset.csv"
-data = np.genfromtxt(file_path, delimiter=',', skip_header=1)
+import sys
+import os
+
+# Adds the parent directory to the search path
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+
+from preprocessing import load_velocity_arrays_fast
+url = "https://media.githubusercontent.com/media/RubenGrujbar/ScientificWritingC08/main/Dataset%20NACA0015%20Velocity%20and%20Standard%20deviation.csv"
+
+#current_dir = Path(__file__).parent
+#file_path = current_dir.parent /  "cleaned_dataset.csv"
+#data = np.genfromtxt(file_path, delimiter=',', skip_header=1)
 # x-coord, y-coord,z-coord,x-velocity,x-stan.dev.,y-velocity,y-stan.dev.,z-velocity,z-stan.dev.
 #0   ,        1,      2,       3,           4,       5,          6,          7,          8
+
+x_coords, y_coords, z_coords, u, v, w, std_V, std_Vx, std_Vy, std_Vz = load_velocity_arrays_fast(url)
 
 y_jump = 180
 z_jump = 180*137
 
 
-def calculate_gradients(data,y_jump,z_jump):
-    x_coords = data[:, 0]
-    y_coords = data[:, 1]
-    z_coords = data[:, 2]
-    u = data[:, 3]
+def calculate_gradients(x_coords, y_coords, z_coords, u, v, w, std_V, std_Vx, std_Vy, std_Vz,y_jump,z_jump):
 
     du_dx = np.zeros_like(x_coords)
     du_dy = np.zeros_like(y_coords)
@@ -32,7 +39,7 @@ def calculate_gradients(data,y_jump,z_jump):
     du_dz[z_jump:-z_jump] = (u[2*z_jump:] - u[:-2*z_jump]) / (z_coords[2*z_jump:] - z_coords[:-2*z_jump])
     
 
-    v = data[:, 5]
+
 
     dv_dx = np.zeros_like(x_coords)
     dv_dy = np.zeros_like(y_coords)
@@ -49,7 +56,6 @@ def calculate_gradients(data,y_jump,z_jump):
     # Z-Gradients
     dv_dz[z_jump:-z_jump] = (v[2*z_jump:] - v[:-2*z_jump]) / (z_coords[2*z_jump:] - z_coords[:-2*z_jump])
    
-    w = data[:, 7]
 
     dw_dx = np.zeros_like(x_coords)
     dw_dy = np.zeros_like(y_coords)
@@ -72,6 +78,6 @@ def calculate_gradients(data,y_jump,z_jump):
 
 print("test1")
 
-calculate_gradients(data,y_jump,z_jump)
+calculate_gradients(x_coords, y_coords, z_coords, u, v, w, std_V, std_Vx, std_Vy, std_Vz,y_jump,z_jump)
 
 print("done")
