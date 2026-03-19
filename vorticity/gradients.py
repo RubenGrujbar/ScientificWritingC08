@@ -42,8 +42,8 @@ def calculate_gradients(x_coords, y_coords, z_coords, u, v, w, std_V, std_Vx, st
 
 
     dv_dx = np.zeros_like(x_coords)
-    dv_dy = np.zeros_like(x_coords
-    dv_dz = np.zeros_like(x_coords
+    dv_dy = np.zeros_like(x_coords)
+    dv_dz = np.zeros_like(x_coords)
 
     # X-Gradients
     dv_dx[1:-1] = (v[2:] - v[:-2]) / (x_coords[2:] - x_coords[:-2])
@@ -72,12 +72,22 @@ def calculate_gradients(x_coords, y_coords, z_coords, u, v, w, std_V, std_Vx, st
     # Z-Gradients
     dw_dz[z_jump:-z_jump] = (w[2*z_jump:] - w[:-2*z_jump]) / (z_coords[2*z_jump:] - z_coords[:-2*z_jump])
     
-    res = np.nan_to_num(np.column_stack((x_coords, y_coords, z_coords, du_dx,du_dy,du_dz,dv_dx,dv_dy,dv_dz,dw_dx, dw_dy, dw_dz)))
-    np.savetxt('vorticity/gradient_results.csv', res, delimiter=',', header='x,y,z,du_dx,du_dy,du_dz,dv_dx,dv_dy,dv_dz,dw_dx, dw_dy, dw_dz', comments='')
-    
+    omega_x = np.zeros_like(x_coords)
+    omega_x[0:-1] = dw_dy[0:-1] - dv_dz[0:-1]
+
+    omega_y = np.zeros_like(x_coords)
+    omega_y[0:-1] = du_dz[0:-1] - dw_dx[0:-1]
+
+    omega_z = np.zeros_like(x_coords)
+    omega_z[0:-1] = dv_dx[0:-1] - du_dy[0:-1]
+
+
+    res = np.nan_to_num(np.column_stack((x_coords, y_coords, z_coords, du_dx,du_dy,du_dz,dv_dx,dv_dy,dv_dz,dw_dx, dw_dy, dw_dz,omega_x,omega_y,omega_z)))
+    np.savetxt('vorticity/gradient_results.csv', res, delimiter=',', header='x,y,z,du_dx,du_dy,du_dz,dv_dx,dv_dy,dv_dz,dw_dx, dw_dy, dw_dz, omega_x, omega_y, omega_z', comments='')
 
 print("test1")
 
 calculate_gradients(x_coords, y_coords, z_coords, u, v, w, std_V, std_Vx, std_Vy, std_Vz,y_jump,z_jump)
+
 
 print("done")
