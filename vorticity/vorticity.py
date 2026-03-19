@@ -3,9 +3,9 @@ import numpy as np
 
 #reading the x,y,z coordinates
 dfu = pd.read_csv('Vorticity/U_gradient_results.csv')
-x = dfu['x'].values
-y = dfu['y'].values
-z = dfu['z'].values
+x = dfu['x_coords'].values
+y = dfu['y_coords'].values
+z = dfu['z_coords'].values
 
 #readig the U_gradient
 du_dx = dfu['du_dx'].values
