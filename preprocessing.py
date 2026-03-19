@@ -47,3 +47,24 @@ def plot_zero_velocity_heatmap():
 
 plot_zero_velocity_heatmap()
 
+def airfoil_coords():
+    x, y, z, u, v, w, std_V, std_Vx, std_Vy, std_Vz = load_velocity_arrays_fast()
+    airfoil_x_coords = []
+    airfoil_z_coords = []
+    for i in range (len(x)):
+        if (y[i]>150 and y[i]<300 and z[i] > -50 and z[i] < 50 and x[i] > -100 and x[i] < 200) : #limiting to a segment that we know for sure is within the span
+            if (u[i] == 0 and v[i] == 0 and w[i] == 0): #if no velocities
+                airfoil_x_coords.append(x[i]) 
+                airfoil_z_coords.append(z[i])
+    return airfoil_x_coords, airfoil_z_coords
+
+
+airfoil_x_coords, airfoil_z_coords = airfoil_coords()
+
+plt.scatter(airfoil_x_coords, airfoil_z_coords)
+plt.xlim(-200, 200)   # x axis limits
+plt.ylim(200, -200)
+plt.show()
+
+
+
