@@ -1,4 +1,5 @@
 # import libraries
+import os
 import numpy as np
 import matplotlib.pyplot as plt
 import pandas as pd
@@ -43,12 +44,22 @@ rho_inf = 1.225
 
 # FOR CONSTANT Y
 # 1. Load data
-df = pd.read_csv('Dataset NACA0015 Velocity and Standard deviation.csv')
+
+file_path = os.path.join(os.getcwd(), 'Dataset NACA0015 Velocity and Standard deviation.csv')
+
+if not os.path.exists(file_path):
+    raise FileNotFoundError(f"File not found at: {file_path}")
+
+df = pd.read_csv(file_path)
+#current_dir = os.path.dirname(__file__) #Check file path of this file
+#file_path = os.path.join(current_dir, 'Dataset NACA0015 Velocity and Standard deviation.csv') #Build the file path for the dataset
+
+#df = pd.read_csv(file_path) #Load dataset using Pandas
 
 target_y = 101.457
 step = 2.6
-n_steps_z = 0
-stepsize = 3
+n_steps_z = 5
+stepsize = 1
 target_y_list = []
 #3. Define manually the target boundaries 
 x_min = -5.44834
