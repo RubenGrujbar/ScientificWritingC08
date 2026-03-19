@@ -47,15 +47,16 @@ df = pd.read_csv('Dataset NACA0015 Velocity and Standard deviation.csv')
 
 target_y = 101.457
 step = 2.6
+n_steps_z = 0
+stepsize = 3
 target_y_list = []
 #3. Define manually the target boundaries 
 x_min = -5.44834
 x_max = 103.573
-z_min = -11.406
+z_min = -11.406 #-73.7038
 z_max = 40.5089
 
 boundaries_x = [x_min, x_max]
-boundaries_z = [z_min, z_max]
 
 def lift(target_y, boundaries_x, boundaries_z, rho_inf, V_inf):
 
@@ -101,14 +102,19 @@ def lift(target_y, boundaries_x, boundaries_z, rho_inf, V_inf):
     return lift
 
 lift_coeff_values = []
-while target_y <= 450:
-    target_y_list.append(target_y)
-    lift_value = lift(target_y, boundaries_x, boundaries_z, rho_inf, V_inf)
-    lift_coeff = (2*lift_value)/(rho_inf*(V_inf**2)*0.1)
-    lift_coeff_values.append(lift_coeff)
-    target_y += step
+for i in range(len(n_steps_z)):
+    boundaries_z = [z_min, z_max]
+    while target_y <= 450:
+        target_y_list.append(target_y)
+        lift_value = lift(target_y, boundaries_x, boundaries_z, rho_inf, V_inf)
+        lift_coeff = (2*lift_value)/(rho_inf*(V_inf**2)*0.1)
+        lift_coeff_values.append(lift_coeff)
+        target_y += step
+    plt.plot(target_y_list, lift_coeff_values)
+    z_min -= stepsize * step
+    z_max += stepsize * step
 
-plt.plot(target_y_list, lift_coeff_values)
+
 plt.show()
 
 # print(lift_value)
