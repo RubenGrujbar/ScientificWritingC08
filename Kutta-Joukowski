@@ -59,7 +59,7 @@ boundaries_z = [z_min, z_max]
 
 def lift(target_y, boundaries_x, boundaries_z, rho_inf, V_inf):
 
-    slice_df = df[np.isclose(df['y [mm]'], target_y, atol=0.001)].copy()
+    slice_df = df[np.isclose(df['y [mm]'], target_y, atol=0.1)].copy()
 
     # 2. Separate valid points
     u_eval_0 = slice_df.dropna(subset=['Velocity u [m/s]'])
@@ -69,7 +69,7 @@ def lift(target_y, boundaries_x, boundaries_z, rho_inf, V_inf):
 
     circ_x = 0
     for x_val in boundaries_x:
-        df_x = slice_df[np.isclose(slice_df['x [mm]'], x_val, atol=0.001)].copy()
+        df_x = slice_df[np.isclose(slice_df['x [mm]'], x_val, atol=0.1)].copy()
 
         valid = df_x.dropna(subset=['Velocity u [m/s]', 'Velocity w [m/s]', 'z [mm]'])
 
@@ -83,7 +83,7 @@ def lift(target_y, boundaries_x, boundaries_z, rho_inf, V_inf):
 
     circ_z = 0
     for z_val in boundaries_z:
-        df_z = slice_df[np.isclose(slice_df['z [mm]'], z_val, atol=0.001)].copy()
+        df_z = slice_df[np.isclose(slice_df['z [mm]'], z_val, atol=0.1)].copy()
 
         valid = df_z.dropna(subset=['Velocity u [m/s]', 'Velocity w [m/s]', 'x [mm]'])
 
