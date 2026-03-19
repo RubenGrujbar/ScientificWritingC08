@@ -62,23 +62,33 @@ z_max = 50.8919
 
 boundaries_x = [x_min, x_max]
 boundaries_z = [z_min, z_max]
+
 circ_x = 0
-# 4. Make slices at the four extremes 
-for i in boundaries_x:
-    slicex_slice_df = slice_df[np.isclose(slice_df[x_eval_0], boundaries_x[i], atol=0.001)].copy()
-    u_eval_x = slicex_slice_df.dropna(subset=[u_eval_0])
-    w_eval_x = slicex_slice_df.dropna(subset=[w_eval_0])
-    z_eval_x = slicex_slice_df.dropna(subset=[z_eval_0])
-    circ_x += circulation(slicex_slice_df, z_eval_x, u_eval_x, w_eval_x)
-    
+for x_val in boundaries_x:
+    df_x = slice_df[np.isclose(slice_df['x [mm]'], x_val, atol=0.001)].copy()
+
+    valid = df_x.dropna(subset=['Velocity u [m/s]', 'Velocity w [m/s]', 'z [mm]'])
+
+    circ_x += circulation(
+        valid['x [mm]'].values,
+        valid['z [mm]'].values,
+        valid['Velocity u [m/s]'].values,
+        valid['Velocity w [m/s]'].values
+    )
+
 
 circ_z = 0
-for j in boundaries_z:
-    slicez_slice_df = slice_df[np.isclose(slice_df[z_eval_0], boundaries_z[j], atol=0.001)].copy()
-    u_eval_z = slicez_slice_df.dropna(subset=[u_eval_0])
-    w_eval_z = slicez_slice_df.dropna(subset=[w_eval_0])
-    x_eval_z = slicez_slice_df.dropna(subset=[x_eval_0])
-    circ_z += circulation(x_eval_z, slicez_slice_df, u_eval_z, w_eval_z)
+for z_val in boundaries_z:
+    df_z = slice_df[np.isclose(slice_df['z [mm]'], z_val, atol=0.001)].copy()
+
+    valid = df_z.dropna(subset=['Velocity u [m/s]', 'Velocity w [m/s]', 'x [mm]'])
+
+    circ_z += circulation(
+        valid['x [mm]'].values,
+        valid['z [mm]'].values,
+        valid['Velocity u [m/s]'].values,
+        valid['Velocity w [m/s]'].values
+    )
 
 
 circ_tot = circ_x + circ_z
