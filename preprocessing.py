@@ -44,8 +44,8 @@ def plot_zero_velocity_heatmap():
         axes[i].invert_yaxis()
     plt.tight_layout()
     plt.show()
-
-plot_zero_velocity_heatmap()
+x, y, z, u, v, w, std_V, std_Vx, std_Vy, std_Vz = load_velocity_arrays_fast()
+#plot_zero_velocity_heatmap()
 
 def airfoil_coords():
     x, y, z, u, v, w, std_V, std_Vx, std_Vy, std_Vz = load_velocity_arrays_fast()
@@ -59,9 +59,9 @@ def airfoil_coords():
     return airfoil_x_coords, airfoil_z_coords
 
 
-airfoil_x_coords, airfoil_z_coords = airfoil_coords()
+#airfoil_x_coords, airfoil_z_coords = airfoil_coords()
 
-plt.scatter(airfoil_x_coords, airfoil_z_coords)
-plt.xlim(-200, 200)   # x axis limits
-plt.ylim(200, -200)
-plt.show()
+#plt.scatter(airfoil_x_coords, airfoil_z_coords)
+#plt.xlim(-200, 200)   # x axis limits
+#plt.ylim(200, -200)
+#plt.show()
