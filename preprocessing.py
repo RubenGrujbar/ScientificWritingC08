@@ -45,6 +45,7 @@ def plot_zero_velocity_heatmap():
     plt.tight_layout()
     plt.show()
 x, y, z, u, v, w, std_V, std_Vx, std_Vy, std_Vz = load_velocity_arrays_fast()
+print ("done")
 #plot_zero_velocity_heatmap()
 
 def airfoil_coords():
