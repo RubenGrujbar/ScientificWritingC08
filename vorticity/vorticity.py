@@ -1,7 +1,10 @@
 import pandas as pd
 <<<<<<< HEAD
+<<<<<<< HEAD
 import numpy as np
 =======
+=======
+>>>>>>> 039f6103187495b2d8f5f283efcca4c1702204be
 import numpy as np
 
 #reading the x,y,z coordinates
@@ -42,5 +45,9 @@ df_out = pd.DataFrame({
     'omega_z': omega_z
 })
 
+<<<<<<< HEAD
+df_out.to_csv('Vorticity/vorticity_xyz.csv', index=False)
+>>>>>>> 039f6103187495b2d8f5f283efcca4c1702204be
+=======
 df_out.to_csv('Vorticity/vorticity_xyz.csv', index=False)
 >>>>>>> 039f6103187495b2d8f5f283efcca4c1702204be
