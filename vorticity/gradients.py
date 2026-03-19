@@ -24,8 +24,8 @@ z_jump = 180*137
 def calculate_gradients(x_coords, y_coords, z_coords, u, v, w, std_V, std_Vx, std_Vy, std_Vz,y_jump,z_jump):
 
     du_dx = np.zeros_like(x_coords)
-    du_dy = np.zeros_like(y_coords)
-    du_dz = np.zeros_like(z_coords)
+    du_dy = np.zeros_like(x_coords)
+    du_dz = np.zeros_like(x_coords)
 
     # X-Gradients
     du_dx[1:-1] = (u[2:] - u[:-2]) / (x_coords[2:] - x_coords[:-2])
@@ -42,8 +42,8 @@ def calculate_gradients(x_coords, y_coords, z_coords, u, v, w, std_V, std_Vx, st
 
 
     dv_dx = np.zeros_like(x_coords)
-    dv_dy = np.zeros_like(y_coords)
-    dv_dz = np.zeros_like(z_coords)
+    dv_dy = np.zeros_like(x_coords
+    dv_dz = np.zeros_like(x_coords
 
     # X-Gradients
     dv_dx[1:-1] = (v[2:] - v[:-2]) / (x_coords[2:] - x_coords[:-2])
@@ -58,8 +58,8 @@ def calculate_gradients(x_coords, y_coords, z_coords, u, v, w, std_V, std_Vx, st
    
 
     dw_dx = np.zeros_like(x_coords)
-    dw_dy = np.zeros_like(y_coords)
-    dw_dz = np.zeros_like(z_coords)
+    dw_dy = np.zeros_like(x_coords)
+    dw_dz = np.zeros_like(x_coords)
 
     # X-Gradients
     dw_dx[1:-1] = (w[2:] - w[:-2]) / (x_coords[2:] - x_coords[:-2])
