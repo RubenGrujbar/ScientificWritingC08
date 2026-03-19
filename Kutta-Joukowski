@@ -1,10 +1,10 @@
 # import libraries
 import numpy as np
 import matplotlib.pyplot as plt
-from preprocessing import load_velocity_arrays_fast
+import pandas as pd
 
 
-def circulation(x, y, u, v):
+def circulation(x, z, u, w):
 # this function calcultes the circulation by taking the line integral of the velocity field over the contour of the airfoil
 # initiate circulation as gamma
     gamma = 0.0
@@ -12,74 +12,103 @@ def circulation(x, y, u, v):
 
     for i in range(n):
         # store the first data sets
-        x1, y1 = x[i]/1000, y[i]/1000
-        u1, v1 = u[i], v[i]
+        x1, z1 = x[i]/1000, z[i]/1000
+        u1, w1 = u[i], w[i]
 
         # modulo operator: ensures we are integrating around a closed loop (if i is the last point in the loop (i+1) would out of the range of points the modulo operator ensures it remains looped)
         j = (i+1) % n
         # store the second set of data
-        x2, y2 = x[j]/1000, y[j]/1000
-        u2, v2 = u[j], v[j]
+        x2, z2 = x[j]/1000, z[j]/1000
+        u2, w2 = u[j], w[j]
 
         # estimate derivatives locally, by the difference
         dx = x2 - x1
-        dy = y2 - y1
+        dz = z2 - z1
 
         #estimate contribution of velocity of a step by averages
         u_avg = (u1+u2)/2
-        v_avg = (v1+v2)/2
+        w_avg = (w1+w2)/2
 
         # compute gamma
-        gamma = gamma + (dx*u_avg + dy*v_avg)
+        gamma = gamma + (dx*u_avg + dz*w_avg)
 
     # negative by counterclockwise positive definition of circulation
     return -gamma
 
-def KuttaJouwkowski(rho_inf, V_inf, gamma):
-    return -rho_inf*V_inf*gamma
+
 
 # constants
 V_inf = 6.35 
 rho_inf = 1.225
 
-# data
-url = "https://media.githubusercontent.com/media/RubenGrujbar/ScientificWritingC08/refs/heads/main/Dataset%20NACA0015%20Velocity%20and%20Standard%20deviation.csv"
-data = load_velocity_arrays_fast(url)
+# FOR CONSTANT Y
+# 1. Load data
+df = pd.read_csv('Dataset NACA0015 Velocity and Standard deviation.csv')
 
-# z = data["z [mm]"]
-# z_min = np.min(z)
-# m = len(z)
-# contour_values = []
+target_y = 101.457
+step = 2.6
+target_y_list = []
+#3. Define manually the target boundaries 
+x_min = -5.44834
+x_max = 103.573
+z_min = -11.406
+z_max = 40.5089
+
+boundaries_x = [x_min, x_max]
+boundaries_z = [z_min, z_max]
+
+def lift(target_y, boundaries_x, boundaries_z, rho_inf, V_inf):
+
+    slice_df = df[np.isclose(df['y [mm]'], target_y, atol=0.8)].copy()
+
+    # 2. Separate valid points
+    u_eval_0 = slice_df.dropna(subset=['Velocity u [m/s]'])
+    w_eval_0 = slice_df.dropna(subset=['Velocity w [m/s]'])
+    x_eval_0 = slice_df.dropna(subset=['x [mm]'])
+    z_eval_0 = slice_df.dropna(subset=['z [mm]'])
+
+    circ_x = 0
+    for x_val in boundaries_x:
+        df_x = slice_df[np.isclose(slice_df['x [mm]'], x_val, atol=0.8)].copy()
+
+        valid = df_x.dropna(subset=['Velocity u [m/s]', 'Velocity w [m/s]', 'z [mm]'])
+
+        circ_x += circulation(
+            valid['x [mm]'].values,
+            valid['z [mm]'].values,
+            valid['Velocity u [m/s]'].values,
+            valid['Velocity w [m/s]'].values
+        )
 
 
+    circ_z = 0
+    for z_val in boundaries_z:
+        df_z = slice_df[np.isclose(slice_df['z [mm]'], z_val, atol=0.8)].copy()
 
-# for m in range(z):
-#     if z[m] == z_min:
-#         x = data["x [mm]"]
-#         y = data["y [mm]"]
-#         u = data["Velocity u [m/s]"]
-#         v = data["Velocity v [m/s]"]
+        valid = df_z.dropna(subset=['Velocity u [m/s]', 'Velocity w [m/s]', 'x [mm]'])
 
-#         dataset = np.column_stack([x,y,u,v])
+        circ_z += circulation(
+            valid['x [mm]'].values,
+            valid['z [mm]'].values,
+            valid['Velocity u [m/s]'].values,
+            valid['Velocity w [m/s]'].values
+        )
 
-#         x_min, x_max = np.min(x), np.max(x)
-#         y_min, y_max = np.min(y), np.max(y)
 
-#         # store the indices
-#         indices = np.arange(dataset.shape[0])
-#         for i in indices: # loops through the rows
-#             rowi = dataset[i, :]
-#             if rowi[0] == x_min or rowi[1] == x_max or rowi[1] == y_min or rowi[1] == y_max:
-#                 contour_values.append(rowi)
+    circ_tot = circ_x + circ_z
+    lift = -rho_inf*V_inf*circ_tot
 
-# contour_values_arr = np.array(contour_values)
+    return lift
 
-# x_contour = contour_values_arr[:, 0]
-# y_contour = contour_values_arr[:, 1]
-# u_contour = contour_values_arr[:, 2]
-# v_contour = contour_values_arr[:, 3]
+lift_coeff_values = []
+while target_y <= 450:
+    target_y_list.append(target_y)
+    lift_value = lift(target_y, boundaries_x, boundaries_z, rho_inf, V_inf)
+    lift_coeff = (2*lift_value)/(rho_inf*(V_inf**2)*0.1)
+    lift_coeff_values.append(lift_coeff)
+    target_y += step
 
-circ = circulation(x_contour,y_contour,u_contour,v_contour)
-lift = KuttaJouwkowski(rho_inf, V_inf, circ)
+plt.plot(target_y_list, lift_coeff_values)
+plt.show()
 
-print(lift)
+# print(lift_value)
