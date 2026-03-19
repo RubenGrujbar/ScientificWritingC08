@@ -45,19 +45,21 @@ rho_inf = 1.225
 # 1. Load data
 df = pd.read_csv('Dataset NACA0015 Velocity and Standard deviation.csv')
 
-target_y = 114.435
+target_y = 101.457
+step = 2.6
+target_y_list = []
 #3. Define manually the target boundaries 
-x_min = -52.1717
-x_max = 150.296
-z_min = -34.7677
-z_max = 50.8919
+x_min = -5.44834
+x_max = 103.573
+z_min = -11.406
+z_max = 40.5089
 
 boundaries_x = [x_min, x_max]
 boundaries_z = [z_min, z_max]
 
 def lift(target_y, boundaries_x, boundaries_z, rho_inf, V_inf):
 
-    slice_df = df[np.isclose(df['y [mm]'], target_y, atol=0.001)].copy()
+    slice_df = df[np.isclose(df['y [mm]'], target_y, atol=0.8)].copy()
 
     # 2. Separate valid points
     u_eval_0 = slice_df.dropna(subset=['Velocity u [m/s]'])
@@ -67,7 +69,7 @@ def lift(target_y, boundaries_x, boundaries_z, rho_inf, V_inf):
 
     circ_x = 0
     for x_val in boundaries_x:
-        df_x = slice_df[np.isclose(slice_df['x [mm]'], x_val, atol=0.001)].copy()
+        df_x = slice_df[np.isclose(slice_df['x [mm]'], x_val, atol=0.8)].copy()
 
         valid = df_x.dropna(subset=['Velocity u [m/s]', 'Velocity w [m/s]', 'z [mm]'])
 
@@ -81,7 +83,7 @@ def lift(target_y, boundaries_x, boundaries_z, rho_inf, V_inf):
 
     circ_z = 0
     for z_val in boundaries_z:
-        df_z = slice_df[np.isclose(slice_df['z [mm]'], z_val, atol=0.001)].copy()
+        df_z = slice_df[np.isclose(slice_df['z [mm]'], z_val, atol=0.8)].copy()
 
         valid = df_z.dropna(subset=['Velocity u [m/s]', 'Velocity w [m/s]', 'x [mm]'])
 
@@ -98,5 +100,15 @@ def lift(target_y, boundaries_x, boundaries_z, rho_inf, V_inf):
 
     return lift
 
-lift_value = lift(target_y, boundaries_x, boundaries_z, rho_inf, V_inf)
-print(lift_value)
+lift_coeff_values = []
+while target_y <= 450:
+    target_y_list.append(target_y)
+    lift_value = lift(target_y, boundaries_x, boundaries_z, rho_inf, V_inf)
+    lift_coeff = (2*lift_value)/(rho_inf*(V_inf**2)*0.1)
+    lift_coeff_values.append(lift_coeff)
+    target_y += step
+
+plt.plot(target_y_list, lift_coeff_values)
+plt.show()
+
+# print(lift_value)
