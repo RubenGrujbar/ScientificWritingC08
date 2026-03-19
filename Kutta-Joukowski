@@ -47,10 +47,10 @@ df = pd.read_csv('Dataset NACA0015 Velocity and Standard deviation.csv')
 
 target_y = 114.435
 #3. Define manually the target boundaries 
-x_min = -52.1717
-x_max = 150.296
-z_min = -34.7677
-z_max = 50.8919
+x_min = -5.44834
+x_max = 103.573
+z_min = -11.406
+z_max = 40.5089
 
 boundaries_x = [x_min, x_max]
 boundaries_z = [z_min, z_max]
