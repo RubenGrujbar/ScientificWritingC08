@@ -26,31 +26,24 @@ import numpy as np
 import pandas as pd
 
 mask = (u == 0) & (v == 0) & (w == 0)
+df = pd.DataFrame({'x': x[mask], 'y': y[mask], 'z': z[mask]})
 
-df = pd.DataFrame({'x': x[mask], 'z': z[mask]})
-counts = df.groupby(['x', 'z']).size().reset_index(name='count')
+planes = [('x', 'z'), ('x', 'y'), ('y', 'z')]
+titles = ['x-z plane', 'x-y plane', 'y-z plane']
 
-pivot = counts.pivot(index='z', columns='x', values='count').fillna(0)
+fig, axes = plt.subplots(1, 3, figsize=(18, 5))
 
-plt.figure(figsize=(12, 6))
-plt.pcolormesh(pivot.columns, pivot.index, pivot.values, cmap='hot_r')
-plt.colorbar(label="Number of zero-velocity points")  
-plt.xlabel("x [mm]")
-plt.ylabel("z [mm]")
-plt.title("Zero-velocity point count per (x, z) location")
+for i in range(len(planes)):
+    col1, col2 = planes[i]
+    counts = df.groupby([col1, col2]).size().reset_index(name='count')
+    pivot = counts.pivot(index=col2, columns=col1, values='count').fillna(0)
+    sc = axes[i].pcolormesh(pivot.columns, pivot.index, pivot.values, cmap='hot_r')
+    plt.colorbar(sc, ax=axes[i], label="Zero-velocity points")
+    axes[i].set_xlabel(f"{col1} [mm]")
+    axes[i].set_ylabel(f"{col2} [mm]")
+    axes[i].set_title(f"Zero-velocity count — {titles[i]}")
+    axes[i].invert_yaxis()
+
 plt.tight_layout()
 plt.show()
 
-
-df = pd.DataFrame({'x': x[mask], 'y': y[mask]})
-counts = df.groupby(['x', 'y']).size().reset_index(name='count')   
-
-pivot = counts.pivot(index='y', columns='x', values='count').fillna(0)
-plt.figure(figsize=(12, 6))
-plt.pcolormesh(pivot.columns, pivot.index, pivot.values, cmap='hot_r')
-plt.colorbar(label="Number of zero-velocity points")
-plt.xlabel("x [mm]")
-plt.ylabel("z [mm]")
-plt.title("Zero-velocity point count per (x, y) location")
-plt.tight_layout()
-plt.show()
