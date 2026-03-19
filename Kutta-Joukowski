@@ -45,7 +45,9 @@ rho_inf = 1.225
 # 1. Load data
 df = pd.read_csv('Dataset NACA0015 Velocity and Standard deviation.csv')
 
-target_y = 114.435
+target_y = 101.457
+step = 2.6 
+target_y_list = [target_y]
 #3. Define manually the target boundaries 
 x_min = -5.44834
 x_max = 103.573
@@ -98,5 +100,14 @@ def lift(target_y, boundaries_x, boundaries_z, rho_inf, V_inf):
 
     return lift
 
-lift_value = lift(target_y, boundaries_x, boundaries_z, rho_inf, V_inf)
-print(lift_value)
+lift_values = []
+while target_y <= 450:
+    lift_value = lift(target_y, boundaries_x, boundaries_z, rho_inf, V_inf)
+    lift_values.append(lift_value)
+    target_y += step
+    target_y_list.append(target_y)
+
+plt.plot(target_y_list, lift_values)
+plt.show()
+
+# print(lift_value)
