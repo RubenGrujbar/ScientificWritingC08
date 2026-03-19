@@ -1,20 +1,13 @@
 import pandas as pd
-<<<<<<< HEAD
-<<<<<<< HEAD
-<<<<<<< HEAD
 import numpy as np
-=======
-=======
->>>>>>> 039f6103187495b2d8f5f283efcca4c1702204be
-=======
->>>>>>> 039f6103187495b2d8f5f283efcca4c1702204be
-import numpy as np
+
 
 #reading the x,y,z coordinates
 dfu = pd.read_csv('Vorticity/U_gradient_results.csv')
-x = dfu['x'].values
-y = dfu['y'].values
-z = dfu['z'].values
+x = dfu['x_coords'].values
+y = dfu['y_coords'].values
+z = dfu['z_coords'].values
+
 
 #readig the U_gradient
 du_dx = dfu['du_dx'].values
@@ -35,10 +28,14 @@ dw_dx = dfw['dw_dx'].values
 dw_dy = dfw['dw_dy'].values
 dw_dz = dfw['dw_dz'].values
 
+
+#calculating the vorticity components
 omega_x = dw_dy - dv_dz
 omega_y = du_dz - dw_dx
 omega_z = dv_dx - du_dy
 
+
+#creating a dataframe to store the results
 df_out = pd.DataFrame({
     'x': x,
     'y': y,
@@ -48,13 +45,4 @@ df_out = pd.DataFrame({
     'omega_z': omega_z
 })
 
-<<<<<<< HEAD
-<<<<<<< HEAD
 df_out.to_csv('Vorticity/vorticity_xyz.csv', index=False)
->>>>>>> 039f6103187495b2d8f5f283efcca4c1702204be
-=======
-df_out.to_csv('Vorticity/vorticity_xyz.csv', index=False)
->>>>>>> 039f6103187495b2d8f5f283efcca4c1702204be
-=======
-df_out.to_csv('Vorticity/vorticity_xyz.csv', index=False)
->>>>>>> 039f6103187495b2d8f5f283efcca4c1702204be
