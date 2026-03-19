@@ -6,6 +6,7 @@ import matplotlib.pyplot as plt
 from preprocessing import wall_derivative
 from preprocessing import transform_to_wall_coords
 from processing import finding_zero
+from datavisu import plt2DStreamVisu
 
 #mat = loadmat('C:\\School\\project 2\\small_data2.mat')
 #mat = loadmat('small_data2.mat')
@@ -13,6 +14,11 @@ current_dir = os.path.dirname(__file__) #Check file path of this file
 file_path = os.path.join(current_dir, 'Dataset NACA0015 Velocity and Standard deviation.csv') #Build the file path for the dataset
 
 df = pd.read_csv(file_path) #Load dataset using Pandas
+
+
+
+
+
 
 data = mat['small']
 temp_X = data['v1']
