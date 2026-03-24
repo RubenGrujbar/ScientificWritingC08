@@ -28,15 +28,15 @@ def calculate_gradients(x_coords, y_coords, z_coords, u, v, w, std_V, std_Vx, st
     du_dz = np.zeros_like(x_coords)
 
     # X-Gradients
-    du_dx[1:-1] = (u[2:] - u[:-2]) / (x_coords[2:] - x_coords[:-2])
-    du_dx[0] = (u[1] - u[0]) / (x_coords[1] - x_coords[0])
-    du_dx[-1] = (u[-1] - u[-2]) / (x_coords[-1] - x_coords[-2])
+    du_dx[1:-1] = (u[2:] - u[:-2]) / (x_coords[2:] - x_coords[:-2])*1000 #mm to m conversion
+    du_dx[0] = (u[1] - u[0]) / (x_coords[1] - x_coords[0])*1000
+    du_dx[-1] = (u[-1] - u[-2]) / (x_coords[-1] - x_coords[-2])*1000
 
     # Y-Gradients
-    du_dy[y_jump:-y_jump] = (u[2*y_jump:] - u[:-2*y_jump]) / (y_coords[2*y_jump:] - y_coords[:-2*y_jump])
+    du_dy[y_jump:-y_jump] = (u[2*y_jump:] - u[:-2*y_jump]) / (y_coords[2*y_jump:] - y_coords[:-2*y_jump])*1000
     
     # Z-Gradients
-    du_dz[z_jump:-z_jump] = (u[2*z_jump:] - u[:-2*z_jump]) / (z_coords[2*z_jump:] - z_coords[:-2*z_jump])
+    du_dz[z_jump:-z_jump] = (u[2*z_jump:] - u[:-2*z_jump]) / (z_coords[2*z_jump:] - z_coords[:-2*z_jump])*1000
     
 
 
@@ -46,15 +46,15 @@ def calculate_gradients(x_coords, y_coords, z_coords, u, v, w, std_V, std_Vx, st
     dv_dz = np.zeros_like(x_coords)
 
     # X-Gradients
-    dv_dx[1:-1] = (v[2:] - v[:-2]) / (x_coords[2:] - x_coords[:-2])
-    dv_dx[0] = (v[1] - v[0]) / (x_coords[1] - x_coords[0])
-    dv_dx[-1] = (v[-1] - v[-2]) / (x_coords[-1] - x_coords[-2])
+    dv_dx[1:-1] = (v[2:] - v[:-2]) / (x_coords[2:] - x_coords[:-2])*1000
+    dv_dx[0] = (v[1] - v[0]) / (x_coords[1] - x_coords[0])*1000
+    dv_dx[-1] = (v[-1] - v[-2]) / (x_coords[-1] - x_coords[-2])*1000
 
     # Y-Gradients
-    dv_dy[y_jump:-y_jump] = (v[2*y_jump:] - v[:-2*y_jump]) / (y_coords[2*y_jump:] - y_coords[:-2*y_jump])
+    dv_dy[y_jump:-y_jump] = (v[2*y_jump:] - v[:-2*y_jump]) / (y_coords[2*y_jump:] - y_coords[:-2*y_jump])*1000
     
     # Z-Gradients
-    dv_dz[z_jump:-z_jump] = (v[2*z_jump:] - v[:-2*z_jump]) / (z_coords[2*z_jump:] - z_coords[:-2*z_jump])
+    dv_dz[z_jump:-z_jump] = (v[2*z_jump:] - v[:-2*z_jump]) / (z_coords[2*z_jump:] - z_coords[:-2*z_jump])*1000
    
 
     dw_dx = np.zeros_like(x_coords)
@@ -62,15 +62,15 @@ def calculate_gradients(x_coords, y_coords, z_coords, u, v, w, std_V, std_Vx, st
     dw_dz = np.zeros_like(x_coords)
 
     # X-Gradients
-    dw_dx[1:-1] = (w[2:] - w[:-2]) / (x_coords[2:] - x_coords[:-2])
-    dw_dx[0] = (w[1] - w[0]) / (x_coords[1] - x_coords[0])
-    dw_dx[-1] = (w[-1] - w[-2]) / (x_coords[-1] - x_coords[-2])
+    dw_dx[1:-1] = (w[2:] - w[:-2]) / (x_coords[2:] - x_coords[:-2]) * 1000 
+    dw_dx[0] = (w[1] - w[0]) / (x_coords[1] - x_coords[0]) *1000
+    dw_dx[-1] = (w[-1] - w[-2]) / (x_coords[-1] - x_coords[-2]) *1000
 
     # Y-Gradients
-    dw_dy[y_jump:-y_jump] = (w[2*y_jump:] - w[:-2*y_jump]) / (y_coords[2*y_jump:] - y_coords[:-2*y_jump])
+    dw_dy[y_jump:-y_jump] = (w[2*y_jump:] - w[:-2*y_jump]) / (y_coords[2*y_jump:] - y_coords[:-2*y_jump])*1000
 
     # Z-Gradients
-    dw_dz[z_jump:-z_jump] = (w[2*z_jump:] - w[:-2*z_jump]) / (z_coords[2*z_jump:] - z_coords[:-2*z_jump])
+    dw_dz[z_jump:-z_jump] = (w[2*z_jump:] - w[:-2*z_jump]) / (z_coords[2*z_jump:] - z_coords[:-2*z_jump])*1000
     
     omega_x = np.zeros_like(x_coords)
     omega_x[0:-1] = dw_dy[0:-1] - dv_dz[0:-1]
