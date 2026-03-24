@@ -112,7 +112,7 @@ def lift(target_y, boundaries_x, boundaries_z, rho_inf, V_inf):
 
     return lift
 
-
+all_lift_coef_values = []
 for i in range(n_steps_z):
     lift_coeff_values = []
     boundaries_z = [z_min, z_max]
@@ -122,11 +122,12 @@ for i in range(n_steps_z):
         lift_coeff = (2*lift_value)/(rho_inf*(V_inf**2)*0.1)
         lift_coeff_values.append(lift_coeff)
         target_y += step
-    plt.plot(target_y_list, lift_coeff_values)
+    # plt.plot(target_y_list, lift_coeff_values)
     z_min -= stepsize * step
     z_max += stepsize * step
+    all_lift_coef_values.append(lift_coeff_values)
+    
+    print(lift_coeff_values)
 
+# plt.show()
 
-plt.show()
-
-# print(lift_value)
