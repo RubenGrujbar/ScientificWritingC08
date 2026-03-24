@@ -3,6 +3,8 @@ import numpy as np
 import pandas as pd
 #from preprocessing import load_velocity_arrays_fast
 import os
+import pyvista as pv
+
 Xa = []
 Ya = []
 
@@ -97,6 +99,149 @@ def load_velocity_arrays_fast(url = "https://media.githubusercontent.com/media/R
     df[cols] = df[cols].replace([np.inf, -np.inf], np.nan).fillna(0).astype("float32")
     return tuple(df[col].to_numpy() for col in cols)
 
+def visualize_airfoil_piv(x, y, z, u, v, w, type,stl_path= r'C:\Users\alexa\OneDrive\Desktop\ScientificWritingC08\N15- Smooth 15 deg.stl'):
+
+    # -----------------------------
+    # 1. Load STL
+    # -----------------------------
+    mesh = pv.read(stl_path)
+
+    # -----------------------------
+    # 2. Build Structured Grid
+    # -----------------------------
+    # Your data is (Nz, Ny, Nx)
+    Nz, Ny, Nx = x.shape
+
+    # Stack coordinates properly
+    points = np.stack((x, y, z), axis=-1)
+
+    grid = pv.StructuredGrid()
+    grid.points = points.reshape(-1, 3)
+    grid.dimensions = (Nx, Ny, Nz)
+
+    # Velocity field
+    velocity = np.stack((u, v, w), axis=-1)
+    grid["velocity"] = velocity.reshape(-1, 3)
+
+    # Velocity magnitude
+    speed = np.linalg.norm(velocity, axis=-1)
+    grid["speed"] = speed.reshape(-1)
+
+    # -----------------------------
+    # 3. (Optional) Align STL to data
+    # -----------------------------
+    # Shift STL to match grid center
+    grid_center = np.array(grid.center)
+    mesh_center = np.array(mesh.center)
+
+    mesh.translate(grid_center - mesh_center)
+
+    # -----------------------------
+    # 4. Create slices
+    # -----------------------------
+
+    #slice = grid.slice(normal='y', origin=[0,grid.center[1],0])
+    min_val, max_val = y.min(), y.max()
+    positions = np.linspace(min_val, max_val-80, 5)
+    plotter = pv.Plotter()
+
+    center = grid.center
+    if type == 'v':
+        slices = []
+
+        for pos in positions:
+            origin = list(center)
+            origin[1] = pos
+
+            slice_plane = grid.slice(normal='y', origin=origin)
+
+            if slice_plane.n_points > 0:   # avoid empty slices
+                slices.append(slice_plane)
+        #slices = grid.slice_along_axis(n=5, axis='y')
+        #slices = grid.slice_orthogonal(x=None, y=None, z=None)
+
+        # -----------------------------
+        # 5. Plot
+        # -----------------------------
+
+        # Airfoil surface
+        plotter.add_mesh(mesh, color="lightgray")
+
+        # Velocity slices
+        for slice in slices:
+            plotter.add_mesh(
+                slice,
+                scalars="speed",
+                cmap="jet",
+                opacity=0.9
+            )
+    #plotter.add_mesh(slice_plane, scalars='speed', cmap='jet', opacity=0.9)
+    if type == 'q':
+        #grid = grid.gaussian_smooth(radius_factor=1.5)
+        # -----------------------------
+        # 4. Compute velocity gradient
+        # -----------------------------
+        # Number of cells to remove from each boundary
+        pad = 10   # try 2–5 depending on your grid
+
+        mask = np.zeros_like(x, dtype=bool)
+
+        mask[pad:-pad, pad:-pad, pad:-pad] = True
+
+        # Flatten mask to match grid
+        mask_flat = mask.reshape(-1)
+
+        # Extract only interior points
+        grid = grid.extract_points(mask_flat, adjacent_cells=True)
+        deriv = grid.compute_derivative(scalars="velocity", gradient=True)
+        grad = deriv["gradient"].reshape(-1, 3, 3)
+
+        # -----------------------------
+        # 5. Compute Q-criterion (vectorized)
+        # -----------------------------
+        S = 0.5 * (grad + np.transpose(grad, (0, 2, 1)))      # strain tensor
+        Omega = 0.5 * (grad - np.transpose(grad, (0, 2, 1)))  # rotation tensor
+
+        S2 = np.sum(S**2, axis=(1, 2))
+        Omega2 = np.sum(Omega**2, axis=(1, 2))
+
+        Q = 0.5 * (Omega2 - S2)
+        Q = Q/1e6
+        grid["Q"] = Q
+
+        # -----------------------------
+        # 6. Choose threshold (tunable!)
+        # -----------------------------
+        q_threshold = np.percentile(Q, 98)
+
+        # -----------------------------
+        # 7. Extract vortex structures
+        # -----------------------------
+        vortices = grid.contour(
+            isosurfaces=[q_threshold],
+            scalars="Q"
+        )
+
+        # -----------------------------
+        # 8. Plot
+        # -----------------------------
+        plotter.add_mesh(mesh, color="lightgray", opacity=1.0)
+
+        plotter.add_mesh(
+            vortices,
+            scalars="speed",
+            cmap="plasma",
+            opacity=1.0
+        )
+
+    # Add axes + better view
+    plotter.add_axes()
+    plotter.show_grid()
+
+    # Nice camera angle
+    plotter.camera_position = 'xy'
+
+    plotter.show()
 
 if __name__ == "__main__":
 
@@ -140,7 +285,8 @@ if __name__ == "__main__":
     #print(y[0,70,0])
     #print(x[:,70,:])
     #print(z[:,70,:])
-    print(Plt2DStreamVisu(x[:,70,:],z[:,70,:],u[:,70,:],v[:,70,:]))
+    visualize_airfoil_piv(x,y,z,u,v,w,'q')
+    #print(Plt2DStreamVisu(x[:,70,:],z[:,70,:],u[:,70,:],v[:,70,:]))
     
 
 
