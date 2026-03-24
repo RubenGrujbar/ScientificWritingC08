@@ -112,8 +112,9 @@ def lift(target_y, boundaries_x, boundaries_z, rho_inf, V_inf):
 
     return lift
 
-lift_coeff_values = []
-for i in range(len(n_steps_z)):
+
+for i in range(n_steps_z):
+    lift_coeff_values = []
     boundaries_z = [z_min, z_max]
     while target_y <= 450:
         target_y_list.append(target_y)
