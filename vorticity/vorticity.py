@@ -1,8 +1,10 @@
 import pandas as pd
 import numpy as np
 
+
 # reading the x,y,z coordinates
-df = pd.read_csv('Vorticity/gradient_results_backup.csv')
+url = ''
+df = pd.read_csv(url)
 
 # reading the U_gradient
 du_dx = df.iloc[:, 3]
@@ -30,4 +32,4 @@ df['omega_y2'] = du_dz - dw_dx
 df['omega_z2'] = dv_dx - du_dy
 
 #saving the results to a new csv file
-df.to_csv('Vorticity/gradient_results_backup.csv', index=False)
+df.to_csv(url, index=False)
