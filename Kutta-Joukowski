@@ -56,18 +56,17 @@ df = pd.read_csv(file_path)
 
 #df = pd.read_csv(file_path) #Load dataset using Pandas
 
-target_y = 101.457
+
 step = 2.596
 n_steps_z = 5
-stepsize = 1
-target_y_list = []
+stepsize = 2
 #3. Define manually the target boundaries 
 x_min = -5.44834
 x_max = 103.573
 z_min = -11.406 #-73.7038
 z_max = 40.5089
 
-boundaries_x = [x_min, x_max]
+
 
 def lift(target_y, boundaries_x, boundaries_z, rho_inf, V_inf):
 
@@ -113,21 +112,59 @@ def lift(target_y, boundaries_x, boundaries_z, rho_inf, V_inf):
     return lift
 
 all_lift_coef_values = []
-for i in range(n_steps_z):
-    lift_coeff_values = []
-    boundaries_z = [z_min, z_max]
-    while target_y <= 450:
-        target_y_list.append(target_y)
-        lift_value = lift(target_y, boundaries_x, boundaries_z, rho_inf, V_inf)
-        lift_coeff = (2*lift_value)/(rho_inf*(V_inf**2)*0.1)
-        lift_coeff_values.append(lift_coeff)
-        target_y += step
+all_boundaries_x = []
+all_boundaries_z = []
+for _ in range(n_steps_z):
+    boundaries_z = [z_min, z_max]   
+    for _ in range(n_steps_z):
+        lift_coeff_values = []
+    # boundaries_z = [z_min, z_max]
+    # all_boundaries_z.append(boundaries_z)
+        boundaries_x = [x_min, x_max]
+        all_boundaries_x.append(boundaries_x)
+        all_boundaries_z.append(boundaries_z) 
+
+        target_y = 101.457
+        target_y_list =[]
+        while target_y <= 450:
+            target_y_list.append(target_y)
+            lift_value = lift(target_y, boundaries_x, boundaries_z, rho_inf, V_inf)
+            lift_coeff = (2*lift_value)/(rho_inf*(V_inf**2)*0.1)
+            lift_coeff_values.append(lift_coeff)
+            target_y += step
+        x_min -= stepsize * step
+        x_max += stepsize * step    
     # plt.plot(target_y_list, lift_coeff_values)
+    # x_min -= stepsize * step
+    # x_max += stepsize * step
+        all_lift_coef_values.append(lift_coeff_values)
+        
     z_min -= stepsize * step
-    z_max += stepsize * step
-    all_lift_coef_values.append(lift_coeff_values)
+    z_max += stepsize * step        
 
-    print(lift_coeff_values)
+    # print(lift_coeff_values)
 
-# plt.show()
+span = 400
+target_y_array = np.array(target_y_list) / span
+
+
+n_plots = len(all_lift_coef_values)
+
+# choose a colormap (e.g., viridis, plasma, coolwarm, etc.)
+cmap = plt.get_cmap('viridis')
+
+for i, lift_coeff_values in enumerate(all_lift_coef_values):
+    color = cmap(i / (n_plots - 1))  # normalize between 0 and 1
+    plt.plot(target_y_array, lift_coeff_values, color=color,     label=(
+        f'Case ('
+        f'[{all_boundaries_x[i][0]:.2f}, {all_boundaries_x[i][1]:.2f}], '
+        f'[{all_boundaries_z[i][0]:.2f}, {all_boundaries_z[i][1]:.2f}]'
+        f')'
+    ))
+
+plt.xlabel('y')
+plt.ylabel('Lift coefficient')
+plt.legend()
+plt.show()
+
 
