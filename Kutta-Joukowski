@@ -4,10 +4,24 @@ import numpy as np
 import matplotlib.pyplot as plt
 import pandas as pd
 
+print("test")
+# constants
+V_inf = 6.35 #m/s
+rho_inf = 1.225 #kg/m^3
+
+#Define the initial target boundaries 
+x_min = -5.44834 #mm
+x_max = 103.573 #mm
+z_min = -11.406 #-73.7038 mm
+z_max = 40.5089 #mm
+
+# Define how many additional boundaries to create and how large steps to take
+step = 2.596 #mm
+n_steps_z = 2
+n_steps_x = 2
+stepsize = 2
 
 def circulation(x, z, u, w):
-# this function calcultes the circulation by taking the line integral of the velocity field over the contour of the airfoil
-# initiate circulation as gamma
     gamma = 0.0
     n = len(x)
 
@@ -36,12 +50,6 @@ def circulation(x, z, u, w):
     # negative by counterclockwise positive definition of circulation
     return -gamma
 
-
-
-# constants
-V_inf = 6.35 
-rho_inf = 1.225
-
 # FOR CONSTANT Y
 # 1. Load data
 
@@ -51,33 +59,17 @@ if not os.path.exists(file_path):
     raise FileNotFoundError(f"File not found at: {file_path}")
 
 df = pd.read_csv(file_path)
-#current_dir = os.path.dirname(__file__) #Check file path of this file
-#file_path = os.path.join(current_dir, 'Dataset NACA0015 Velocity and Standard deviation.csv') #Build the file path for the dataset
-
-#df = pd.read_csv(file_path) #Load dataset using Pandas
-
-
-step = 2.596
-n_steps_z = 5
-stepsize = 2
-#3. Define manually the target boundaries 
-x_min = -5.44834
-x_max = 103.573
-z_min = -11.406 #-73.7038
-z_max = 40.5089
-
-
 
 def lift(target_y, boundaries_x, boundaries_z, rho_inf, V_inf):
-
+    #Make a slice of the data where y=y_target
     slice_df = df[np.isclose(df['y [mm]'], target_y, atol=0.8)].copy()
 
-    # 2. Separate valid points
     u_eval_0 = slice_df.dropna(subset=['Velocity u [m/s]'])
     w_eval_0 = slice_df.dropna(subset=['Velocity w [m/s]'])
     x_eval_0 = slice_df.dropna(subset=['x [mm]'])
     z_eval_0 = slice_df.dropna(subset=['z [mm]'])
 
+    #Calculate the circulation for each of the four boundaries, then sum
     circ_x = 0
     for x_val in boundaries_x:
         df_x = slice_df[np.isclose(slice_df['x [mm]'], x_val, atol=0.8)].copy()
@@ -90,7 +82,6 @@ def lift(target_y, boundaries_x, boundaries_z, rho_inf, V_inf):
             valid['Velocity u [m/s]'].values,
             valid['Velocity w [m/s]'].values
         )
-
 
     circ_z = 0
     for z_val in boundaries_z:
@@ -105,26 +96,25 @@ def lift(target_y, boundaries_x, boundaries_z, rho_inf, V_inf):
             valid['Velocity w [m/s]'].values
         )
 
-
     circ_tot = circ_x + circ_z
     lift = -rho_inf*V_inf*circ_tot
 
     return lift
 
+#Execute the lift calculation for varying boundaries over the whole span
 all_lift_coef_values = []
 all_boundaries_x = []
 all_boundaries_z = []
 for _ in range(n_steps_z):
-    boundaries_z = [z_min, z_max]   
-    for _ in range(n_steps_z):
+    boundaries_z = [z_min, z_max] 
+     
+    for _ in range(n_steps_x):
         lift_coeff_values = []
-    # boundaries_z = [z_min, z_max]
-    # all_boundaries_z.append(boundaries_z)
         boundaries_x = [x_min, x_max]
         all_boundaries_x.append(boundaries_x)
         all_boundaries_z.append(boundaries_z) 
-
-        target_y = 101.457
+        #Loop over the whole span
+        target_y = 101.457 #mm, starting y_point
         target_y_list =[]
         while target_y <= 450:
             target_y_list.append(target_y)
@@ -134,19 +124,18 @@ for _ in range(n_steps_z):
             target_y += step
         x_min -= stepsize * step
         x_max += stepsize * step    
-    # plt.plot(target_y_list, lift_coeff_values)
-    # x_min -= stepsize * step
-    # x_max += stepsize * step
         all_lift_coef_values.append(lift_coeff_values)
         
     z_min -= stepsize * step
     z_max += stepsize * step        
 
-    # print(lift_coeff_values)
+    print(lift_coeff_values)
 
+
+# --- Plotting ---
+#Non-dimensionalize y for plotting
 span = 400
 target_y_array = np.array(target_y_list) / span
-
 
 n_plots = len(all_lift_coef_values)
 
@@ -167,6 +156,6 @@ plt.ylabel('Lift coefficient')
 plt.legend()
 plt.show()
 
-#Hello world
+print("Hello World")
 
 
