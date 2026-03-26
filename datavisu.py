@@ -176,13 +176,15 @@ def visualize_airfoil_piv(x, y, z, u, v, w, type,stl_path= r'C:\Users\alexa\OneD
                 opacity=0.9
             )
     #plotter.add_mesh(slice_plane, scalars='speed', cmap='jet', opacity=0.9)
+    """
     if type == 'q':
         #grid = grid.gaussian_smooth(radius_factor=1.5)
         # -----------------------------
         # 4. Compute velocity gradient
         # -----------------------------
         # Number of cells to remove from each boundary
-        pad = 10   # try 2–5 depending on your grid
+        
+        pad = 15   # try 2–5 depending on your grid
 
         mask = np.zeros_like(x, dtype=bool)
 
@@ -207,6 +209,22 @@ def visualize_airfoil_piv(x, y, z, u, v, w, type,stl_path= r'C:\Users\alexa\OneD
 
         Q = 0.5 * (Omega2 - S2)
         Q = Q/1e6
+        Nx_int = Nx - 2*pad
+        Ny_int = Ny - 2*pad
+        Nz_int = Nz - 2*pad
+        matq = Q.reshape(Nz_int,Ny_int,Nx_int)
+        yspn = []
+        spn = []
+        for i in range(len(matq[0,:,0])):
+            yspn.append(sum(matq[:,i,:]))
+            spn.append(y[0,i+15,0])
+        plt.ion()
+        plt.plot(spn, yspn, '-o')
+        plt.set_xlabel('Spanwise location (m)')
+        plt.set_ylabel('Integrated Q (s^-2)')
+        plt.set_title('Spanwise Q integral')
+        plt.show()
+
         grid["Q"] = Q
 
         # -----------------------------
@@ -233,15 +251,105 @@ def visualize_airfoil_piv(x, y, z, u, v, w, type,stl_path= r'C:\Users\alexa\OneD
             cmap="plasma",
             opacity=1.0
         )
+    """
+    if type == 'q':
+        # -----------------------------
+        # 4. Compute velocity gradient
+        # -----------------------------
+        deriv = grid.compute_derivative(scalars="velocity", gradient=True)
+        grad = deriv["gradient"].reshape(-1, 3, 3)
 
+        # -----------------------------
+        # 5. Compute Q-criterion
+        # -----------------------------
+        S = 0.5 * (grad + np.transpose(grad, (0, 2, 1)))
+        Omega = 0.5 * (grad - np.transpose(grad, (0, 2, 1)))
+
+        S2 = np.sum(S**2, axis=(1, 2))
+        Omega2 = np.sum(Omega**2, axis=(1, 2))
+
+        Q = 0.5 * (Omega2 - S2)
+
+        # Unit correction (mm → m)
+        Q = Q / 1e6
+
+        # Store for PyVista
+        grid["Q"] = Q
+
+
+        # -----------------------------
+        # 6. Reshape to structured grid
+        # -----------------------------
+        Q_3D = Q.reshape(Nz, Ny, Nx)
+
+        # -----------------------------
+        # 7. Mask boundaries (NO extraction!)
+        # -----------------------------
+        pad = 15
+
+        mask = np.zeros_like(Q_3D, dtype=bool)
+        mask[pad:-pad, pad:-pad, pad:-pad] = True
+
+        Q_3D_filtered = np.where(mask, Q_3D, 0.0)
+
+        # -----------------------------
+        # 8. Spanwise Q integral
+        # -----------------------------
+        # Sum over x and y → function of z (span)
+        q_threshold = np.percentile(Q, 98)
+
+        Q_span = np.sum(Q_3D_filtered, axis=(0, 2))
+        Q_filtered_flat = Q_3D_filtered.reshape(-1)
+        grid["Q"] = Q_filtered_flat
+        z_span = y[0, :, 0]   # spanwise coordinate
+
+        # -----------------------------
+        # 9. Matplotlib plot (non-blocking)
+        # -----------------------------
+        plt.ion()
+        plt.figure()
+
+        plt.plot(z_span, Q_span, '-o')
+        plt.xlabel('Spanwise location (mm)')
+        plt.ylabel('Integrated Q')
+        plt.title('Spanwise Q integral')
+        plt.grid()
+
+        plt.show()
+
+        # -----------------------------
+        # 10. 3D vortex visualization
+        # -----------------------------
+
+        vortices = grid.contour(
+            isosurfaces=[q_threshold],
+            scalars="Q"
+        )
+
+        # Airfoil
+        plotter.add_mesh(mesh, color="lightgray", opacity=1.0)
+
+        # Vortex structures
+        plotter.add_mesh(
+            vortices,
+            scalars="speed",
+            cmap="plasma",
+            opacity=1.0
+        )
+
+        # -----------------------------
+        # 11. Show PyVista (non-blocking)
+        # -----------------------------
+    #plotter.show(auto_close=False)
     # Add axes + better view
+    plotter.show(auto_close=False)  # keeps window open but doesn't block Python
     plotter.add_axes()
     plotter.show_grid()
 
     # Nice camera angle
-    plotter.camera_position = 'xy'
+    plotter.camera_position = 'zy'
+    plt.plot()
 
-    plotter.show()
 
 if __name__ == "__main__":
 
