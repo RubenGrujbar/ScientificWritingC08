@@ -4,21 +4,20 @@ import numpy as np
 import matplotlib.pyplot as plt
 import pandas as pd
 
-print("test")
 # constants
 V_inf = 6.35 #m/s
-rho_inf = 1.225 #kg/m^3
+rho_inf = 1.204 #kg/m^3
 
 #Define the initial target boundaries 
-x_min = -5.44834 #mm
-x_max = 103.573 #mm
-z_min = -11.406 #-73.7038 mm
-z_max = 40.5089 #mm
+x_min = -20 #mm
+x_max = 160 #mm
+z_min = -50 #-73.7038 mm
+z_max = 40 #mm
 
 # Define how many additional boundaries to create and how large steps to take
 step = 2.596 #mm
-n_steps_z = 2
-n_steps_x = 2
+n_steps_z = 5
+n_steps_x = 5
 stepsize = 2
 
 def circulation(x, z, u, w):
@@ -60,6 +59,11 @@ if not os.path.exists(file_path):
 
 df = pd.read_csv(file_path)
 
+NC15_m = np.load('NACA 15 deg cl_mean.npy')
+NC15_s = np.load('NACA 15 deg cl_stdev.npy')
+NC15_y = np.load('NACA 15 deg cl_y-values-span.npy')/400
+
+''''
 def lift(target_y, boundaries_x, boundaries_z, rho_inf, V_inf):
     #Make a slice of the data where y=y_target
     slice_df = df[np.isclose(df['y [mm]'], target_y, atol=0.8)].copy()
@@ -100,6 +104,54 @@ def lift(target_y, boundaries_x, boundaries_z, rho_inf, V_inf):
     lift = -rho_inf*V_inf*circ_tot
 
     return lift
+'''
+
+def lift(target_y, boundaries_x, boundaries_z, rho_inf, V_inf):
+
+    slice_df = df[np.isclose(df['y [mm]'], target_y, atol=0.8)].copy()
+
+    x_min, x_max = boundaries_x
+    z_min, z_max = boundaries_z
+
+    # ---- Extract edges ----
+    bottom = slice_df[np.isclose(slice_df['z [mm]'], z_min, atol=0.8)].copy()
+    right  = slice_df[np.isclose(slice_df['x [mm]'], x_max, atol=0.8)].copy()
+    top    = slice_df[np.isclose(slice_df['z [mm]'], z_max, atol=0.8)].copy()
+    left   = slice_df[np.isclose(slice_df['x [mm]'], x_min, atol=0.8)].copy()
+
+    # ---- Clean NaNs ----
+    def clean(df_part):
+        return df_part.dropna(subset=[
+            'Velocity u [m/s]',
+            'Velocity w [m/s]',
+            'x [mm]',
+            'z [mm]'
+        ])
+
+    bottom = clean(bottom)
+    right  = clean(right)
+    top    = clean(top)
+    left   = clean(left)
+
+    # ---- Sort edges (IMPORTANT for correct direction) ----
+    bottom = bottom.sort_values('x [mm]')
+    right  = right.sort_values('z [mm]')
+    top    = top.sort_values('x [mm]', ascending=False)
+    left   = left.sort_values('z [mm]', ascending=False)
+
+    # ---- Combine into ONE closed loop ----
+    contour = pd.concat([bottom, right, top, left])
+
+    # ---- Compute circulation ----
+    gamma = circulation(
+        contour['x [mm]'].values,
+        contour['z [mm]'].values,
+        contour['Velocity u [m/s]'].values,
+        contour['Velocity w [m/s]'].values
+    )
+
+    lift = -rho_inf * V_inf * gamma
+    return lift
 
 #Execute the lift calculation for varying boundaries over the whole span
 all_lift_coef_values = []
@@ -129,7 +181,7 @@ for _ in range(n_steps_z):
     z_min -= stepsize * step
     z_max += stepsize * step        
 
-    print(lift_coeff_values)
+    #print(lift_coeff_values)
 
 
 # --- Plotting ---
@@ -143,19 +195,23 @@ n_plots = len(all_lift_coef_values)
 cmap = plt.get_cmap('viridis')
 
 for i, lift_coeff_values in enumerate(all_lift_coef_values):
-    color = cmap(i / (n_plots - 1))  # normalize between 0 and 1
+    if n_plots > 1:
+        color = cmap(i / (n_plots - 1))  # normalize between 0 and 1
+    else:
+        color = 'r'
     plt.plot(target_y_array, lift_coeff_values, color=color,     label=(
         f'Case ('
         f'[{all_boundaries_x[i][0]:.2f}, {all_boundaries_x[i][1]:.2f}], '
         f'[{all_boundaries_z[i][0]:.2f}, {all_boundaries_z[i][1]:.2f}]'
         f')'
     ))
+plt.plot(NC15_y, NC15_m, label = r'$\alpha = 15^\circ$')
 
 plt.xlabel('y')
 plt.ylabel('Lift coefficient')
 plt.legend()
 plt.show()
 
-print("Hello World")
+
 
 
