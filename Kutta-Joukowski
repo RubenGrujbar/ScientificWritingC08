@@ -16,7 +16,7 @@ z_max = 40 #mm
 
 # Define how many additional boundaries to create and how large steps to take
 step = 2.596 #mm
-n_steps_z = 10
+n_steps_z = 1
 n_steps_x = 1
 stepsize = 1 #each step will be this times step
 
@@ -63,48 +63,6 @@ NC15_m = np.load('NACA 15 deg cl_mean.npy')
 NC15_s = np.load('NACA 15 deg cl_stdev.npy')
 NC15_y = np.load('NACA 15 deg cl_y-values-span.npy')/400
 
-''''
-def lift(target_y, boundaries_x, boundaries_z, rho_inf, V_inf):
-    #Make a slice of the data where y=y_target
-    slice_df = df[np.isclose(df['y [mm]'], target_y, atol=0.8)].copy()
-
-    u_eval_0 = slice_df.dropna(subset=['Velocity u [m/s]'])
-    w_eval_0 = slice_df.dropna(subset=['Velocity w [m/s]'])
-    x_eval_0 = slice_df.dropna(subset=['x [mm]'])
-    z_eval_0 = slice_df.dropna(subset=['z [mm]'])
-
-    #Calculate the circulation for each of the four boundaries, then sum
-    circ_x = 0
-    for x_val in boundaries_x:
-        df_x = slice_df[np.isclose(slice_df['x [mm]'], x_val, atol=0.8)].copy()
-
-        valid = df_x.dropna(subset=['Velocity u [m/s]', 'Velocity w [m/s]', 'z [mm]'])
-
-        circ_x += circulation(
-            valid['x [mm]'].values,
-            valid['z [mm]'].values,
-            valid['Velocity u [m/s]'].values,
-            valid['Velocity w [m/s]'].values
-        )
-
-    circ_z = 0
-    for z_val in boundaries_z:
-        df_z = slice_df[np.isclose(slice_df['z [mm]'], z_val, atol=0.8)].copy()
-
-        valid = df_z.dropna(subset=['Velocity u [m/s]', 'Velocity w [m/s]', 'x [mm]'])
-
-        circ_z += circulation(
-            valid['x [mm]'].values,
-            valid['z [mm]'].values,
-            valid['Velocity u [m/s]'].values,
-            valid['Velocity w [m/s]'].values
-        )
-
-    circ_tot = circ_x + circ_z
-    lift = -rho_inf*V_inf*circ_tot
-
-    return lift
-'''
 
 def lift(target_y, boundaries_x, boundaries_z, rho_inf, V_inf):
 
@@ -115,9 +73,13 @@ def lift(target_y, boundaries_x, boundaries_z, rho_inf, V_inf):
 
     # ---- Extract edges ----
     bottom = slice_df[np.isclose(slice_df['z [mm]'], z_min, atol=0.8)].copy()
+    print(len(bottom))
     right  = slice_df[np.isclose(slice_df['x [mm]'], x_max, atol=0.8)].copy()
+    print(len(right))
     top    = slice_df[np.isclose(slice_df['z [mm]'], z_max, atol=0.8)].copy()
+    print(len(top))
     left   = slice_df[np.isclose(slice_df['x [mm]'], x_min, atol=0.8)].copy()
+    print(len(left))
 
     # ---- Clean NaNs ----
     def clean(df_part):
@@ -141,6 +103,7 @@ def lift(target_y, boundaries_x, boundaries_z, rho_inf, V_inf):
 
     # ---- Combine into ONE closed loop ----
     contour = pd.concat([bottom, right, top, left])
+    print(np.shape(contour))
 
     # ---- Compute circulation ----
     gamma = circulation(
@@ -183,8 +146,6 @@ for _ in range(n_steps_z):
     z_min -= stepsize * step
     z_max += stepsize * step        
 
-    #print(lift_coeff_values)
-
 
 # --- Plotting ---
 #Non-dimensionalize y for plotting
@@ -195,27 +156,6 @@ n_plots = len(all_lift_coef_values)
 
 # choose a colormap (e.g., viridis, plasma, coolwarm, etc.)
 cmap = plt.get_cmap('viridis')
-
-'''
-for i, lift_coeff_values in enumerate(all_lift_coef_values):
-    if n_plots > 1:
-        color = cmap(i / (n_plots - 1))  # normalize between 0 and 1
-    else:
-        color = 'r'
-    plt.plot(target_y_array, lift_coeff_values, color=color,     label=(
-        f'Case ('
-        f'[{all_boundaries_x[i][0]:.2f}, {all_boundaries_x[i][1]:.2f}], '
-        f'[{all_boundaries_z[i][0]:.2f}, {all_boundaries_z[i][1]:.2f}]'
-        f')'
-    ))
-plt.plot(NC15_y, NC15_m, 'r', label = r'$\alpha = 15^\circ$')
-
-plt.xlabel('y')
-plt.ylabel('Lift coefficient')
-plt.legend()
-plt.show()
-'''
-
 
 # Ensure arrays
 target_y_array = np.asarray(target_y_array)
@@ -264,3 +204,65 @@ plt.ylabel('Lift coefficient')
 plt.legend()
 plt.xlim(0.2601325, 1)
 plt.show()
+
+''''
+def lift(target_y, boundaries_x, boundaries_z, rho_inf, V_inf):
+    #Make a slice of the data where y=y_target
+    slice_df = df[np.isclose(df['y [mm]'], target_y, atol=0.8)].copy()
+
+    u_eval_0 = slice_df.dropna(subset=['Velocity u [m/s]'])
+    w_eval_0 = slice_df.dropna(subset=['Velocity w [m/s]'])
+    x_eval_0 = slice_df.dropna(subset=['x [mm]'])
+    z_eval_0 = slice_df.dropna(subset=['z [mm]'])
+
+    #Calculate the circulation for each of the four boundaries, then sum
+    circ_x = 0
+    for x_val in boundaries_x:
+        df_x = slice_df[np.isclose(slice_df['x [mm]'], x_val, atol=0.8)].copy()
+
+        valid = df_x.dropna(subset=['Velocity u [m/s]', 'Velocity w [m/s]', 'z [mm]'])
+
+        circ_x += circulation(
+            valid['x [mm]'].values,
+            valid['z [mm]'].values,
+            valid['Velocity u [m/s]'].values,
+            valid['Velocity w [m/s]'].values
+        )
+
+    circ_z = 0
+    for z_val in boundaries_z:
+        df_z = slice_df[np.isclose(slice_df['z [mm]'], z_val, atol=0.8)].copy()
+
+        valid = df_z.dropna(subset=['Velocity u [m/s]', 'Velocity w [m/s]', 'x [mm]'])
+
+        circ_z += circulation(
+            valid['x [mm]'].values,
+            valid['z [mm]'].values,
+            valid['Velocity u [m/s]'].values,
+            valid['Velocity w [m/s]'].values
+        )
+
+    circ_tot = circ_x + circ_z
+    lift = -rho_inf*V_inf*circ_tot
+
+    return lift
+'''
+'''
+for i, lift_coeff_values in enumerate(all_lift_coef_values):
+    if n_plots > 1:
+        color = cmap(i / (n_plots - 1))  # normalize between 0 and 1
+    else:
+        color = 'r'
+    plt.plot(target_y_array, lift_coeff_values, color=color,     label=(
+        f'Case ('
+        f'[{all_boundaries_x[i][0]:.2f}, {all_boundaries_x[i][1]:.2f}], '
+        f'[{all_boundaries_z[i][0]:.2f}, {all_boundaries_z[i][1]:.2f}]'
+        f')'
+    ))
+plt.plot(NC15_y, NC15_m, 'r', label = r'$\alpha = 15^\circ$')
+
+plt.xlabel('y')
+plt.ylabel('Lift coefficient')
+plt.legend()
+plt.show()
+'''
