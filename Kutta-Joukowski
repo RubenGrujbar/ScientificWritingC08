@@ -16,9 +16,9 @@ z_max = 40 #mm
 
 # Define how many additional boundaries to create and how large steps to take
 step = 2.596 #mm
-n_steps_z = 5
-n_steps_x = 5
-stepsize = 2
+n_steps_z = 10
+n_steps_x = 1
+stepsize = 1 #each step will be this times step
 
 def circulation(x, z, u, w):
     gamma = 0.0
@@ -158,11 +158,13 @@ all_lift_coef_values = []
 all_boundaries_x = []
 all_boundaries_z = []
 for _ in range(n_steps_z):
-    boundaries_z = [z_min, z_max] 
+    boundaries_z = [z_min, z_max]
+    x_min_l = x_min
+    x_max_l = x_max
      
     for _ in range(n_steps_x):
         lift_coeff_values = []
-        boundaries_x = [x_min, x_max]
+        boundaries_x = [x_min_l, x_max_l]
         all_boundaries_x.append(boundaries_x)
         all_boundaries_z.append(boundaries_z) 
         #Loop over the whole span
@@ -174,8 +176,8 @@ for _ in range(n_steps_z):
             lift_coeff = (2*lift_value)/(rho_inf*(V_inf**2)*0.1)
             lift_coeff_values.append(lift_coeff)
             target_y += step
-        x_min -= stepsize * step
-        x_max += stepsize * step    
+        x_min_l -= stepsize * step
+        x_max_l += stepsize * step    
         all_lift_coef_values.append(lift_coeff_values)
         
     z_min -= stepsize * step
@@ -194,6 +196,7 @@ n_plots = len(all_lift_coef_values)
 # choose a colormap (e.g., viridis, plasma, coolwarm, etc.)
 cmap = plt.get_cmap('viridis')
 
+'''
 for i, lift_coeff_values in enumerate(all_lift_coef_values):
     if n_plots > 1:
         color = cmap(i / (n_plots - 1))  # normalize between 0 and 1
@@ -205,13 +208,59 @@ for i, lift_coeff_values in enumerate(all_lift_coef_values):
         f'[{all_boundaries_z[i][0]:.2f}, {all_boundaries_z[i][1]:.2f}]'
         f')'
     ))
-plt.plot(NC15_y, NC15_m, label = r'$\alpha = 15^\circ$')
+plt.plot(NC15_y, NC15_m, 'r', label = r'$\alpha = 15^\circ$')
 
 plt.xlabel('y')
 plt.ylabel('Lift coefficient')
 plt.legend()
 plt.show()
+'''
 
 
+# Ensure arrays
+target_y_array = np.asarray(target_y_array)
+NC15_y = np.asarray(NC15_y)
+NC15_m = np.asarray(NC15_m)
+all_lift_coef_values = [np.asarray(v) for v in all_lift_coef_values]
 
+# Sort reference data (IMPORTANT)
+sort_idx = np.argsort(NC15_y)
+NC15_y_sorted = NC15_y[sort_idx]
+NC15_m_sorted = NC15_m[sort_idx]
 
+# Interpolate correctly
+NC15_interp = np.interp(target_y_array, NC15_y_sorted, NC15_m_sorted)
+
+# Mask for [0,1]
+mask = (target_y_array >= NC15_y_sorted[0]) & (target_y_array <= NC15_y_sorted[-1])
+
+for i, lift_coeff_values in enumerate(all_lift_coef_values):
+    if n_plots > 1:
+        color = cmap(i / (n_plots - 1))
+    else:
+        color = 'r'
+
+    mse = np.mean((lift_coeff_values[mask] - NC15_interp[mask]) ** 2)
+    print(f'Case {i}: MSE (y ∈ [0,1]) = {mse:.6e}')
+
+    plt.plot(
+        target_y_array[mask],
+        lift_coeff_values[mask],
+        color=color,
+        label=(
+            f'Case ('
+            f'[{all_boundaries_x[i][0]:.2f}, {all_boundaries_x[i][1]:.2f}], '
+            f'[{all_boundaries_z[i][0]:.2f}, {all_boundaries_z[i][1]:.2f}]'
+            f') | MSE={mse:.2e}'
+        )
+    )
+
+# Plot sorted reference (also masked)
+ref_mask = (NC15_y_sorted >= 0) & (NC15_y_sorted <= 1)
+plt.plot(NC15_y_sorted[ref_mask], NC15_m_sorted[ref_mask], 'r', label=r'$\alpha = 15^\circ$')
+
+plt.xlabel('y')
+plt.ylabel('Lift coefficient')
+plt.legend()
+plt.xlim(0.2601325, 1)
+plt.show()
