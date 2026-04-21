@@ -1,0 +1,150 @@
+from vedo import *
+import numpy as np
+from preprocessing import load_velocity_arrays_fast
+
+# ── 1. Load STL ───────────────────────────────────────────────────────────────
+airfoil = Mesh("N15- Smooth 15 deg.stl").color('lightgray').alpha(0.8)
+
+# ── 2. Load velocity data ─────────────────────────────────────────────────────
+x, y, z, u, v, w, std_V, std_Vx, std_Vy, std_Vz = load_velocity_arrays_fast()
+mask = ~((u == 0) & (v == 0) & (w == 0))
+
+n_samples = 200_000
+idx = np.random.choice(mask.sum(), n_samples, replace=False)
+
+points  = np.column_stack([x[mask][idx], y[mask][idx], z[mask][idx]])
+vectors = np.column_stack([u[mask][idx], v[mask][idx], w[mask][idx]])
+u_vals  = u[mask][idx]
+
+# ── 3. Build point cloud ──────────────────────────────────────────────────────
+cloud = Points(points, r=2).cmap('coolwarm', u_vals).alpha(0.3)
+cloud.add_scalarbar(title='u [m/s]')
+
+# ── 4. Interpolate onto uniform grid ─────────────────────────────────────────
+bounds = [x[mask].min(), x[mask].max(),
+          y[mask].min(), y[mask].max(),
+          z[mask].min(), z[mask].max()]
+
+# Build grid coords
+nx, ny, nz = 50, 50, 50
+gx = np.linspace(bounds[0], bounds[1], nx)
+gy = np.linspace(bounds[2], bounds[3], ny)
+gz = np.linspace(bounds[4], bounds[5], nz)
+GX, GY, GZ = np.meshgrid(gx, gy, gz, indexing='ij')
+grid_points = np.column_stack([GX.ravel(), GY.ravel(), GZ.ravel()])
+
+# Interpolate using vedo's own interpolator
+cloud_with_vectors = Points(points)
+cloud_with_vectors.pointdata['velocity'] = vectors
+cloud_with_vectors.pointdata['u']        = u_vals
+
+grid_cloud = Points(grid_points)
+grid_interp = grid_cloud.interpolate_data_from(
+    cloud_with_vectors,
+    radius=50,
+    n=None,                  # use radius-based neighbours
+    kernel='gaussian',
+    null_strategy=1,         # set to zero if no neighbours found
+    null_value=0.0
+)
+
+import vtk
+from vedo import vtk2numpy
+
+# --- 5. Mask out airfoil interior (robust VTK method) ---
+
+pts = np.asarray(grid_interp.points, dtype=float)
+
+# Create VTK implicit function for signed distance
+implicit_distance = vtk.vtkImplicitPolyDataDistance()
+implicit_distance.SetInput(airfoil.dataset)
+
+# Compute signed distance for every grid point
+dist = np.array([implicit_distance.EvaluateFunction(p) for p in pts])
+
+inside = dist < 0  # negative = inside airfoil
+
+# Mask velocities
+vel = grid_interp.pointdata['velocity'].copy()
+vel[inside] = [0.0, 0.0, 0.0]
+grid_interp.pointdata['velocity'] = vel
+
+# ── 6. Build Volume for streamlines ──────────────────────────────────────────
+U = vel[:, 0].reshape(nx, ny, nz)
+V = vel[:, 1].reshape(nx, ny, nz)
+W = vel[:, 2].reshape(nx, ny, nz)
+
+# ── 7. Seed points upstream of airfoil ───────────────────────────────────────
+n_seeds = 100
+seed_y  = np.random.uniform(bounds[2], bounds[3], n_seeds)
+seed_z  = np.random.uniform(bounds[4], bounds[5], n_seeds)
+seed_x  = np.full(n_seeds, -150.0)
+seeds   = np.column_stack([seed_x, seed_y, seed_z])
+
+# ---- 8. Compute streamlines with pure VTK (compatible with ALL vedo versions) ----
+import vtk
+from vedo import Mesh
+
+# 1) Create vtkImageData for the vector field
+img = vtk.vtkImageData()
+img.SetDimensions(nx, ny, nz)
+img.SetSpacing(gx[1]-gx[0], gy[1]-gy[0], gz[1]-gz[0])
+img.SetOrigin(gx[0], gy[0], gz[0])
+
+# 2) Create vtk array for U,V,W
+vectors_vtk = vtk.vtkDoubleArray()
+vectors_vtk.SetNumberOfComponents(3)
+vectors_vtk.SetName("velocity")
+
+for vx in vel:         # vel is (nx*ny*nz, 3)
+    vectors_vtk.InsertNextTuple(vx)
+
+img.GetPointData().SetVectors(vectors_vtk)
+
+# 3) Stream tracer setup
+streamer = vtk.vtkStreamTracer()
+streamer.SetInputData(img)
+streamer.SetMaximumPropagation(300)
+streamer.SetInitialIntegrationStep(1.0)
+streamer.SetIntegrationDirectionToForward()
+
+# 4) Create vtk seed points
+seeds_vtk = vtk.vtkPoints()
+for s in seeds:
+    seeds_vtk.InsertNextPoint(s)
+
+seeds_poly = vtk.vtkPolyData()
+seeds_poly.SetPoints(seeds_vtk)
+streamer.SetSourceData(seeds_poly)
+
+# 5) Run streamline generation
+streamer.Update()
+sl_output = streamer.GetOutput()
+
+# 6) Convert to vedo meshes
+streamlines = []
+for i in range(sl_output.GetNumberOfCells()):
+    cell = sl_output.GetCell(i)
+    pts = cell.GetPoints()
+    pts_np = np.array([pts.GetPoint(j) for j in range(pts.GetNumberOfPoints())])
+    sl = Mesh([pts_np, []]).lw(1).color("white")
+    streamlines.append(sl)
+
+print(f"Generated {len(streamlines)} streamlines")
+
+# ---- 9. 3D PLOT with airfoil, point cloud and streamlines ----
+
+plt = Plotter(bg='black', size=(1200, 900))
+plt.show(airfoil, "Airfoil (STL)", at=0, viewup="z")
+
+# Add cloud
+cloud.alpha(0.3)
+plt.add(cloud)
+
+# Add streamlines
+for sl in streamlines:
+    plt.add(sl)
+
+# Axes and rendering
+plt.add(Axes(airfoil, c='white'))
+plt.show(title="Airfoil Flow Visualization", axes=1, interactive=True)
