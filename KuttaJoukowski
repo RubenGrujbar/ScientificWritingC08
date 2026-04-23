@@ -75,19 +75,19 @@ def lift(target_y, boundaries_x, boundaries_z, rho_inf, V_inf):
 
     #Bottom_cut goes from x_min to x_max at z_min (whithin a tolerance)
     bottom = slice_df[np.isclose(slice_df['z [mm]'], z_min, atol=1.5)].copy()
-    bottom_cut = bottom[(bottom['x [mm]'] >= x_min) & (bottom['x [mm]'] < x_max)]
+    bottom_cut = bottom[(bottom['x [mm]'] >= x_min-step) & (bottom['x [mm]'] < x_max+step)]
 
     #Right_cut goes from z_min to z_max at x_max (whithin a tolerance)
     right  = slice_df[np.isclose(slice_df['x [mm]'], x_max, atol=1.5)].copy()
-    right_cut = right[(right['z [mm]'] >= z_min) & (right['z [mm]'] < z_max)]
+    right_cut = right[(right['z [mm]'] >= z_min-step) & (right['z [mm]'] < z_max+step)]
 
     #Top_cut goes from x_min to x_max at z_max (whithin a tolerance)
     top    = slice_df[np.isclose(slice_df['z [mm]'], z_max, atol=1.5)].copy()
-    top_cut = top[(top['x [mm]'] >= x_min) & (top['x [mm]'] < x_max)]
+    top_cut = top[(top['x [mm]'] >= x_min-step) & (top['x [mm]'] < x_max+step)]
 
     #Left_cut goes from z_min to z_max at x_min (whithin a tolerance)
     left   = slice_df[np.isclose(slice_df['x [mm]'], x_min, atol=1.5)].copy()
-    left_cut = left[(left['z [mm]'] >= z_min) & (left['z [mm]'] < z_max)]
+    left_cut = left[(left['z [mm]'] >= z_min-step) & (left['z [mm]'] < z_max+step)]
 
     # ---- Clean NaNs ----
     def clean(df_part):
@@ -109,11 +109,11 @@ def lift(target_y, boundaries_x, boundaries_z, rho_inf, V_inf):
     top_cut    = top_cut.sort_values('x [mm]', ascending=False)
     left_cut   = left_cut.sort_values('z [mm]', ascending=False)
 
-    #Remove corner points
-    bottom_cut_corner = bottom_cut.iloc[1:-1]
-    right_cut_corner = right_cut.iloc[1:-1]
-    left_cut_corner = left_cut.iloc[1:-1]
-    top_cut_corner = top_cut.iloc[1:-1]
+    #Remove corner points, for now unused
+    bottom_cut_corner = bottom_cut.iloc[0:-1]
+    right_cut_corner = right_cut.iloc[0:-1]
+    left_cut_corner = left_cut.iloc[0:-1]
+    top_cut_corner = top_cut.iloc[0:-1]
 
     #Store corner points separately
     bottom_first = bottom_cut.iloc[0].copy
@@ -145,18 +145,11 @@ def lift(target_y, boundaries_x, boundaries_z, rho_inf, V_inf):
         contour_straights['Velocity w [m/s]'].values
     )
 
-    gamma = circulation(
-        contour['x [mm]'].values,
-        contour['z [mm]'].values,
-        contour['Velocity u [m/s]'].values,
-        contour['Velocity w [m/s]'].values
-    )
-
     # ---- Compute circulation of 8 corners ----
 
     # Convert to lift
     lift = -rho_inf * V_inf * gamma_straight
-    return lift, bottom_cut['x [mm]'], bottom_cut['z [mm]']
+    return lift, bottom_cut['x [mm]'], bottom_cut['z [mm]'], right_cut['x [mm]'], right_cut['z [mm]'], top_cut['x [mm]'], top_cut['z [mm]'], left_cut['x [mm]'], left_cut['z [mm]']
 
 #Execute the lift calculation for varying boundaries over the whole span
 all_lift_coef_values = []
@@ -189,12 +182,23 @@ for _ in range(n_steps_z):
     z_max += stepsize * step        
 
 # Your data
-x_df = lift(101.457, [x_min, x_max], [z_min, z_max], rho_inf, V_inf)[1]
-z_df = lift(101.457, [x_min, x_max], [z_min, z_max], rho_inf, V_inf)[2]
+x_df_bottom = lift(101.457, [x_min, x_max], [z_min, z_max], rho_inf, V_inf)[1]
+z_df_bottom = lift(101.457, [x_min, x_max], [z_min, z_max], rho_inf, V_inf)[2]
+x_df_right = lift(101.457, [x_min, x_max], [z_min, z_max], rho_inf, V_inf)[3]
+z_df_right = lift(101.457, [x_min, x_max], [z_min, z_max], rho_inf, V_inf)[4]
+x_df_top = lift(101.457, [x_min, x_max], [z_min, z_max], rho_inf, V_inf)[5]
+z_df_top = lift(101.457, [x_min, x_max], [z_min, z_max], rho_inf, V_inf)[6]
+x_df_left = lift(101.457, [x_min, x_max], [z_min, z_max], rho_inf, V_inf)[7]
+z_df_left = lift(101.457, [x_min, x_max], [z_min, z_max], rho_inf, V_inf)[8]
+
 
 # Create scatter plot
 plt.figure()
-plt.scatter(x_df, z_df)
+plt.scatter(x_df_bottom, z_df_bottom)
+plt.scatter(x_df_right, z_df_right)
+plt.scatter(x_df_top, z_df_top)
+plt.scatter(x_df_left, z_df_left)
+
 
 # Labels and title
 plt.xlabel('x [mm]')
