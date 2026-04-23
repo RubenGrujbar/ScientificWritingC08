@@ -16,7 +16,7 @@ z_max = 40 #mm
 
 # Define how many additional boundaries to create and how large steps to take
 step = 2.596 #mm
-n_steps_z = 1
+n_steps_z = 10
 n_steps_x = 1
 stepsize = 1 #each step will be this times step
 
@@ -66,20 +66,30 @@ NC15_y = np.load('NACA 15 deg cl_y-values-span.npy')/400
 
 def lift(target_y, boundaries_x, boundaries_z, rho_inf, V_inf):
 
+    #Slice the datafile such that we only look at a certain y-coordinate (span)
     slice_df = df[np.isclose(df['y [mm]'], target_y, atol=0.8)].copy()
 
     x_min, x_max = boundaries_x
     z_min, z_max = boundaries_z
 
-    # ---- Extract edges ----
-    bottom = slice_df[np.isclose(slice_df['z [mm]'], z_min, atol=0.8)].copy()
+    # ---- Create a rectangular  ----
+
+    bottom = slice_df[np.isclose(slice_df['z [mm]'], z_min, atol=1.5)].copy()
+    bottom_cut = bottom[(bottom['x [mm]'] >= x_min) & (bottom['x [mm]'] < x_max)]
     print(len(bottom))
-    right  = slice_df[np.isclose(slice_df['x [mm]'], x_max, atol=0.8)].copy()
+    print(np.shape(bottom_cut))
+    right  = slice_df[np.isclose(slice_df['x [mm]'], x_max, atol=1.5)].copy()
+    right_cut = right[(right['z [mm]'] >= z_min) & (right['z [mm]'] < z_max)]
     print(len(right))
-    top    = slice_df[np.isclose(slice_df['z [mm]'], z_max, atol=0.8)].copy()
+    print(np.shape(right_cut))
+    top    = slice_df[np.isclose(slice_df['z [mm]'], z_max, atol=1.5)].copy()
+    top_cut = top[(top['x [mm]'] >= x_min) & (top['x [mm]'] < x_max)]
+    print(np.shape(top_cut))
     print(len(top))
-    left   = slice_df[np.isclose(slice_df['x [mm]'], x_min, atol=0.8)].copy()
+    left   = slice_df[np.isclose(slice_df['x [mm]'], x_min, atol=1.5)].copy()
+    left_cut = left[(left['z [mm]'] >= z_min) & (left['z [mm]'] < z_max)]
     print(len(left))
+    print(np.shape(left_cut))
 
     # ---- Clean NaNs ----
     def clean(df_part):
@@ -90,27 +100,52 @@ def lift(target_y, boundaries_x, boundaries_z, rho_inf, V_inf):
             'z [mm]'
         ])
 
-    bottom = clean(bottom)
-    right  = clean(right)
-    top    = clean(top)
-    left   = clean(left)
+    bottom_cut = clean(bottom_cut)
+    right_cut  = clean(right_cut)
+    top_cut    = clean(top_cut)
+    left_cut   = clean(left_cut)
 
     # ---- Sort edges (IMPORTANT for correct direction) ----
-    bottom = bottom.sort_values('x [mm]')
-    right  = right.sort_values('z [mm]')
-    top    = top.sort_values('x [mm]', ascending=False)
-    left   = left.sort_values('z [mm]', ascending=False)
+    bottom_cut = bottom_cut.sort_values('x [mm]')
+    right_cut  = right_cut.sort_values('z [mm]')
+    top_cut    = top_cut.sort_values('x [mm]', ascending=False)
+    left_cut   = left_cut.sort_values('z [mm]', ascending=False)
 
-    # ---- Combine into ONE closed loop ----
-    contour = pd.concat([bottom, right, top, left])
-    print(np.shape(contour))
+    bottom_cut_corner = bottom_cut.iloc[1:-1]
+    bottom_first = bottom_cut.iloc[0].copy
+    bottom_last = bottom_cut.iloc[-1].copy
+
+    right_cut_corner = right_cut.iloc[1:-1]
+    right_first = right_cut.iloc[0].copy
+    right_last = right_cut.iloc[-1].copy
+
+    top_cut_corner = top_cut.iloc[1:-1]
+    top_first = top_cut.iloc[0].copy
+    top_last = top_cut.iloc[-1].copy
+    print(top_last)
+
+    left_cut_corner = left_cut.iloc[1:-1]
+    left_first = left_cut.iloc[0].copy
+    print(left_first)
+    left_last = left_cut.iloc[-1].copy
+
+
+    # ---- Combine 4 straights into ONE open loop ----
+    contour_straights = pd.concat([bottom_cut_corner, right_cut_corner, top_cut_corner, left_cut_corner])
+    print(np.shape(contour_straights))
+    # ---- Combine 8 corner pieces into ONE open loop ----
+    #contour_corners = pd.concat([bottom_first, bottom_last, right_first, right_last, top_first, top_last, left_first, left_last])
+    #print(np.shape(contour_corners))
+    #contour_top_left = pd.concat([left_last, top_first])
+
+    #print(np.shape(contour_top_left))
 
     # ---- Compute circulation ----
     gamma = circulation(
-        contour['x [mm]'].values,
-        contour['z [mm]'].values,
-        contour['Velocity u [m/s]'].values,
-        contour['Velocity w [m/s]'].values
+        contour_straights['x [mm]'].values,
+        contour_straights['z [mm]'].values,
+        contour_straights['Velocity u [m/s]'].values,
+        contour_straights['Velocity w [m/s]'].values
     )
 
     lift = -rho_inf * V_inf * gamma
