@@ -50,6 +50,8 @@ x_axis = (x_max_values - x_min_values)/chord
 z_axis = (z_max_values - z_min_values)/chord
 
 CL_grid = np.full((n_steps_x, n_steps_z), np.nan)
+V_inf = 6.35 #m/s
+rho_inf = 1.204 #kg/m^3
 
 for i in range(n_steps_x):
     for k in range(n_steps_z):
@@ -59,8 +61,8 @@ for i in range(n_steps_x):
         cl_span = []
         target_y = 101.457 #mm, starting y_point
         while target_y <= 400:
-            lift_value = lift(target_y, boundaries_x, boundaries_z, 1.225, 60)
-            lift_coeff = (2*lift_value)/(1.225*(60**2)*0.1)
+            lift_value = lift(target_y, boundaries_x, boundaries_z, rho_inf, V_inf)
+            lift_coeff = (2*lift_value)/(rho_inf*(V_inf**2)*0.1)
             cl_span.append(lift_coeff)
             target_y += step 
 
