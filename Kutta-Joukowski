@@ -3,7 +3,6 @@ import os
 import numpy as np
 import matplotlib.pyplot as plt
 import pandas as pd
-
 # constants
 V_inf = 6.35 #m/s
 rho_inf = 1.204 #kg/m^3
@@ -100,6 +99,7 @@ def lift(target_y, boundaries_x, boundaries_z, rho_inf, V_inf):
     right  = right.sort_values('z [mm]')
     top    = top.sort_values('x [mm]', ascending=False)
     left   = left.sort_values('z [mm]', ascending=False)
+
 
     # ---- Combine into ONE closed loop ----
     contour = pd.concat([bottom, right, top, left])
