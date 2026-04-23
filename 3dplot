@@ -1,15 +1,103 @@
 import numpy as np
 import pandas as pd 
 import matplotlib.pyplot as plt 
-from KuttaJoukowski import lift 
+import sys
 import os
+
+
+def circulation(x, z, u, w):
+    gamma = 0.0
+    n = len(x)
+
+    for i in range(n):
+        # store the first data sets
+        x1, z1 = x[i]/1000, z[i]/1000
+        u1, w1 = u[i], w[i]
+
+        # modulo operator: ensures we are integrating around a closed loop (if i is the last point in the loop (i+1) would out of the range of points the modulo operator ensures it remains looped)
+        j = (i+1) % n
+        # store the second set of data
+        x2, z2 = x[j]/1000, z[j]/1000
+        u2, w2 = u[j], w[j]
+
+        # estimate derivatives locally, by the difference
+        dx = x2 - x1
+        dz = z2 - z1
+
+        #estimate contribution of velocity of a step by averages
+        u_avg = (u1+u2)/2
+        w_avg = (w1+w2)/2
+
+        # compute gamma
+        gamma = gamma + (dx*u_avg + dz*w_avg)
+
+    # negative by counterclockwise positive definition of circulation
+    return -gamma
+
+def lift(target_y, boundaries_x, boundaries_z, rho_inf, V_inf):
+
+    slice_df = df[np.isclose(df['y [mm]'], target_y, atol=0.8)].copy()
+
+    x_min, x_max = boundaries_x
+    z_min, z_max = boundaries_z
+
+    # ---- Extract edges ----
+    bottom = slice_df[np.isclose(slice_df['z [mm]'], z_min, atol=0.8)].copy()
+    # print(len(bottom))
+    right  = slice_df[np.isclose(slice_df['x [mm]'], x_max, atol=0.8)].copy()
+    # print(len(right))
+    top    = slice_df[np.isclose(slice_df['z [mm]'], z_max, atol=0.8)].copy()
+    # print(len(top))
+    left   = slice_df[np.isclose(slice_df['x [mm]'], x_min, atol=0.8)].copy()
+    # print(len(left))
+
+    # ---- Clean NaNs ----
+    def clean(df_part):
+        return df_part.dropna(subset=[
+            'Velocity u [m/s]',
+            'Velocity w [m/s]',
+            'x [mm]',
+            'z [mm]'
+        ])
+
+    bottom = clean(bottom)
+    right  = clean(right)
+    top    = clean(top)
+    left   = clean(left)
+
+    if any(len(e) == 0 for e in [bottom, right, top, left]):
+        return np.nan
+    
+    # ---- Sort edges (IMPORTANT for correct direction) ----
+    bottom = bottom.sort_values('x [mm]')
+    right  = right.sort_values('z [mm]')
+    top    = top.sort_values('x [mm]', ascending=False)
+    left   = left.sort_values('z [mm]', ascending=False)
+
+
+    # ---- Combine into ONE closed loop ----
+    contour = pd.concat([bottom, right, top, left])
+    # print(np.shape(contour))
+
+    if len(contour) < 4:
+        return np.nan
+    # ---- Compute circulation ----
+    gamma = circulation(
+        contour['x [mm]'].values,
+        contour['z [mm]'].values,
+        contour['Velocity u [m/s]'].values,
+        contour['Velocity w [m/s]'].values
+    )
+
+    lift = -rho_inf * V_inf * gamma
+    return lift
 
 file_path = os.path.join(os.getcwd(), 'Dataset NACA0015 Velocity and Standard deviation.csv')
 
 if not os.path.exists(file_path):
     raise FileNotFoundError(f"File not found at: {file_path}")
 
-df = pd.read_csv()
+df = pd.read_csv(file_path)
 x_unique = np.unique(df['x [mm]'])
 z_unique = np.unique(df['z [mm]'])
 
@@ -17,8 +105,8 @@ z_unique = np.unique(df['z [mm]'])
 chord = 100
 step = 2.596 #mm
 
-n_steps_x = 20
-n_steps_z = 20 
+n_steps_x = 5
+n_steps_z = 5
 
 
 x_max_start = 100
@@ -60,11 +148,13 @@ for i in range(n_steps_x):
 
         cl_span = []
         target_y = 101.457 #mm, starting y_point
-        while target_y <= 400:
+        while target_y <= 450:
+            print(target_y, i, k)
             lift_value = lift(target_y, boundaries_x, boundaries_z, rho_inf, V_inf)
             lift_coeff = (2*lift_value)/(rho_inf*(V_inf**2)*0.1)
             cl_span.append(lift_coeff)
             target_y += step 
+            
 
         CL_grid[i,k] =  np.mean(cl_span)
 
