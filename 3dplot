@@ -1,0 +1,91 @@
+import numpy as np
+import pandas as pd 
+import matplotlib.pyplot as plt 
+from KuttaJoukowski import lift 
+import os
+
+file_path = os.path.join(os.getcwd(), 'Dataset NACA0015 Velocity and Standard deviation.csv')
+
+if not os.path.exists(file_path):
+    raise FileNotFoundError(f"File not found at: {file_path}")
+
+df = pd.read_csv()
+x_unique = np.unique(df['x [mm]'])
+z_unique = np.unique(df['z [mm]'])
+
+
+chord = 100
+step = 2.596 #mm
+
+n_steps_x = 20
+n_steps_z = 20 
+
+
+x_max_start = 100
+x_min_start = 0
+z_max_start = 30
+z_min_start = -10
+
+x_max_end = 200
+x_min_end = -100
+z_max_end = 90 
+z_min_end = -60
+
+
+x_max_targets = np.linspace(x_max_start, x_max_end, n_steps_x)
+x_min_targets = np.linspace(x_min_start, x_min_end, n_steps_x)
+z_max_targets = np.linspace(z_max_start, z_max_end, n_steps_z)
+z_min_targets = np.linspace(z_min_start, z_min_end, n_steps_z)
+
+def snap_to_nearest(targets, actual_values):
+    snapped = np.array([actual_values[np.argmin(np.abs(actual_values - t))] for t in targets ])
+    return snapped
+
+x_min_values = snap_to_nearest(x_min_targets, x_unique)
+x_max_values = snap_to_nearest(x_max_targets, x_unique)
+z_min_values = snap_to_nearest(z_min_targets, z_unique)
+z_max_values = snap_to_nearest(z_max_targets, z_unique)
+
+x_axis = (x_max_values - x_min_values)/chord
+z_axis = (z_max_values - z_min_values)/chord
+
+CL_grid = np.full((n_steps_x, n_steps_z), np.nan)
+V_inf = 6.35 #m/s
+rho_inf = 1.204 #kg/m^3
+
+for i in range(n_steps_x):
+    for k in range(n_steps_z):
+        boundaries_x = [x_min_values[i], x_max_values[i]]
+        boundaries_z = [z_min_values[k], z_max_values[k]]
+
+        cl_span = []
+        target_y = 101.457 #mm, starting y_point
+        while target_y <= 400:
+            lift_value = lift(target_y, boundaries_x, boundaries_z, rho_inf, V_inf)
+            lift_coeff = (2*lift_value)/(rho_inf*(V_inf**2)*0.1)
+            cl_span.append(lift_coeff)
+            target_y += step 
+
+        CL_grid[i,k] =  np.mean(cl_span)
+
+
+X_mesh, Z_mesh = np.meshgrid(x_axis, z_axis, indexing = 'ij')
+
+fig = plt.figure()
+ax = fig.add_subplot(111, projection='3d')
+
+surf = ax.plot_surface(
+    X_mesh, Z_mesh, CL_grid,
+    cmap='RdYlGn',
+    edgecolor='k',
+    linewidth=0.3,
+    alpha=0.95
+)
+
+fig.colorbar(surf, ax=ax, shrink=0.5, label='$C_L$ [-]')
+ax.set_xlabel('Contour width x/c [-]')
+ax.set_ylabel('Contour height z/c [-]')
+ax.set_zlabel('Lift coefficient $C_L$ [-]')
+
+plt.tight_layout()
+plt.show()

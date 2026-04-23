@@ -3,7 +3,6 @@ import os
 import numpy as np
 import matplotlib.pyplot as plt
 import pandas as pd
-
 # constants
 V_inf = 6.35 #m/s
 rho_inf = 1.204 #kg/m^3
