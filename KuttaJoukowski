@@ -15,10 +15,24 @@ z_max = 40 #mm
 
 # Define how many additional boundaries to create and how large steps to take
 step = 2.596 #mm
-n_steps_z = 1
-n_steps_x = 1
-stepsize = 1 #each step will be this times step
+n_steps_z = 5
+n_steps_x = 5
+stepsize = 2 #each step will be this times step
 
+# Load data
+
+file_path = os.path.join(os.getcwd(), 'Dataset NACA0015 Velocity and Standard deviation.csv')
+
+if not os.path.exists(file_path):
+    raise FileNotFoundError(f"File not found at: {file_path}")
+
+df = pd.read_csv(file_path)
+
+NC15_m = np.load('NACA 15 deg cl_mean.npy')
+NC15_s = np.load('NACA 15 deg cl_stdev.npy')
+NC15_y = np.load('NACA 15 deg cl_y-values-span.npy')/400
+
+#Circulation function, numerical line integral
 def circulation(x, z, u, w):
     gamma = 0.0
     n = len(x)
@@ -48,21 +62,7 @@ def circulation(x, z, u, w):
     # negative by counterclockwise positive definition of circulation
     return -gamma
 
-# FOR CONSTANT Y
-# 1. Load data
-
-file_path = os.path.join(os.getcwd(), 'Dataset NACA0015 Velocity and Standard deviation.csv')
-
-if not os.path.exists(file_path):
-    raise FileNotFoundError(f"File not found at: {file_path}")
-
-df = pd.read_csv(file_path)
-
-NC15_m = np.load('NACA 15 deg cl_mean.npy')
-NC15_s = np.load('NACA 15 deg cl_stdev.npy')
-NC15_y = np.load('NACA 15 deg cl_y-values-span.npy')/400
-
-
+#Lift function
 def lift(target_y, boundaries_x, boundaries_z, rho_inf, V_inf):
 
     #Slice the datafile such that we only look at a certain y-coordinate (span)
@@ -73,19 +73,19 @@ def lift(target_y, boundaries_x, boundaries_z, rho_inf, V_inf):
 
     # ---- Create a rectangular boundary, consisting of 4 parts  ----
 
-    #Bottom_cut goes from x_min to x_max at z_min (whithin a tolerance)
+    #Bottom_cut goes from x_min to x_max at z_min (within a tolerance)
     bottom = slice_df[np.isclose(slice_df['z [mm]'], z_min, atol=1.5)].copy()
     bottom_cut = bottom[(bottom['x [mm]'] >= x_min-step) & (bottom['x [mm]'] < x_max+step)]
 
-    #Right_cut goes from z_min to z_max at x_max (whithin a tolerance)
+    #Right_cut goes from z_min to z_max at x_max (within a tolerance)
     right  = slice_df[np.isclose(slice_df['x [mm]'], x_max, atol=1.5)].copy()
     right_cut = right[(right['z [mm]'] >= z_min-step) & (right['z [mm]'] < z_max+step)]
 
-    #Top_cut goes from x_min to x_max at z_max (whithin a tolerance)
+    #Top_cut goes from x_min to x_max at z_max (within a tolerance)
     top    = slice_df[np.isclose(slice_df['z [mm]'], z_max, atol=1.5)].copy()
     top_cut = top[(top['x [mm]'] >= x_min-step) & (top['x [mm]'] < x_max+step)]
 
-    #Left_cut goes from z_min to z_max at x_min (whithin a tolerance)
+    #Left_cut goes from z_min to z_max at x_min (within a tolerance)
     left   = slice_df[np.isclose(slice_df['x [mm]'], x_min, atol=1.5)].copy()
     left_cut = left[(left['z [mm]'] >= z_min-step) & (left['z [mm]'] < z_max+step)]
 
@@ -103,17 +103,18 @@ def lift(target_y, boundaries_x, boundaries_z, rho_inf, V_inf):
     top_cut    = clean(top_cut)
     left_cut   = clean(left_cut)
 
-    # ---- Sort edges (IMPORTANT for correct direction) ----
+    # Sort edges
     bottom_cut = bottom_cut.sort_values('x [mm]')
     right_cut  = right_cut.sort_values('z [mm]')
     top_cut    = top_cut.sort_values('x [mm]', ascending=False)
     left_cut   = left_cut.sort_values('z [mm]', ascending=False)
 
-    #Remove corner points, for now unused
-    bottom_cut_corner = bottom_cut.iloc[0:-1]
-    right_cut_corner = right_cut.iloc[0:-1]
-    left_cut_corner = left_cut.iloc[0:-1]
-    top_cut_corner = top_cut.iloc[0:-1]
+    '''
+    #Remove and store corner points, for now unused
+    bottom_cut_corner = bottom_cut.iloc[1:-1]
+    right_cut_corner = right_cut.iloc[1:-1]
+    left_cut_corner = left_cut.iloc[1:-1]
+    top_cut_corner = top_cut.iloc[1:-1]
 
     #Store corner points separately
     bottom_first = bottom_cut.iloc[0].copy
@@ -128,14 +129,17 @@ def lift(target_y, boundaries_x, boundaries_z, rho_inf, V_inf):
     left_first = left_cut.iloc[0].copy
     left_last = left_cut.iloc[-1].copy
 
-    # ---- Combine 4 straights into ONE open loop ----
-    contour_straights = pd.concat([bottom_cut_corner, right_cut_corner, top_cut_corner, left_cut_corner])
-    contour = pd.concat([bottom_cut, right_cut, top_cut, left_cut])
-    print(np.shape(contour_straights))
-
+    #Combine Corners
     # ---- Combine 8 corner pieces into ONE open loop ----
     #contour_corners = pd.concat([bottom_first, bottom_last, right_first, right_last, top_first, top_last, left_first, left_last])
     #print(np.shape(contour_corners))
+    
+    '''
+
+    # Combine 4 straights into ONE open loop (for now including corners)
+    contour_straights = pd.concat([bottom_cut, right_cut, top_cut, left_cut])
+    print(np.shape(contour_straights))
+   
 
     # ---- Compute circulation of 4 straights ----
     gamma_straight = circulation(
@@ -151,7 +155,10 @@ def lift(target_y, boundaries_x, boundaries_z, rho_inf, V_inf):
     lift = -rho_inf * V_inf * gamma_straight
     return lift, bottom_cut['x [mm]'], bottom_cut['z [mm]'], right_cut['x [mm]'], right_cut['z [mm]'], top_cut['x [mm]'], top_cut['z [mm]'], left_cut['x [mm]'], left_cut['z [mm]']
 
-#Execute the lift calculation for varying boundaries over the whole span
+#Execute the lift calculation for varying boundaries over the whole span, including creation of contour plots
+plt.figure()
+colors = plt.cm.viridis(np.linspace(0, 1, n_steps_x * n_steps_z))
+color_idx = 0
 all_lift_coef_values = []
 all_boundaries_x = []
 all_boundaries_z = []
@@ -168,12 +175,31 @@ for _ in range(n_steps_z):
         #Loop over the whole span
         target_y = 101.457 #mm, starting y_point
         target_y_list =[]
+        # Plotting of contour
+        x_df_bottom, z_df_bottom, x_df_right, z_df_right, x_df_top, z_df_top, x_df_left, z_df_left = lift(101.457, boundaries_x, boundaries_z, rho_inf, V_inf)[1:9]
+
+        color = colors[color_idx]   # <-- pick one color for this iteration
+        color_idx += 1
+
+        plt.scatter(x_df_bottom, z_df_bottom, alpha=0.5, color=color)
+        plt.scatter(x_df_right, z_df_right, alpha=0.5, color=color)
+        plt.scatter(x_df_top, z_df_top, alpha=0.5, color=color)
+        plt.scatter(x_df_left, z_df_left, alpha=0.5, color=color)
+
+        # Labels and title
+        plt.xlabel('x [mm]')
+        plt.ylabel('z [mm]')
+        plt.title('x-z Plane Plot')
+
+        # Optional: equal scaling so units look correct
+        plt.axis('equal')
         while target_y <= 450:
             target_y_list.append(target_y)
             lift_value = lift(target_y, boundaries_x, boundaries_z, rho_inf, V_inf)[0]
             lift_coeff = (2*lift_value)/(rho_inf*(V_inf**2)*0.1)
             lift_coeff_values.append(lift_coeff)
             target_y += step
+
         x_min_l -= stepsize * step
         x_max_l += stepsize * step    
         all_lift_coef_values.append(lift_coeff_values)
@@ -181,32 +207,7 @@ for _ in range(n_steps_z):
     z_min -= stepsize * step
     z_max += stepsize * step        
 
-# Your data
-x_df_bottom = lift(101.457, [x_min, x_max], [z_min, z_max], rho_inf, V_inf)[1]
-z_df_bottom = lift(101.457, [x_min, x_max], [z_min, z_max], rho_inf, V_inf)[2]
-x_df_right = lift(101.457, [x_min, x_max], [z_min, z_max], rho_inf, V_inf)[3]
-z_df_right = lift(101.457, [x_min, x_max], [z_min, z_max], rho_inf, V_inf)[4]
-x_df_top = lift(101.457, [x_min, x_max], [z_min, z_max], rho_inf, V_inf)[5]
-z_df_top = lift(101.457, [x_min, x_max], [z_min, z_max], rho_inf, V_inf)[6]
-x_df_left = lift(101.457, [x_min, x_max], [z_min, z_max], rho_inf, V_inf)[7]
-z_df_left = lift(101.457, [x_min, x_max], [z_min, z_max], rho_inf, V_inf)[8]
 
-
-# Create scatter plot
-plt.figure()
-plt.scatter(x_df_bottom, z_df_bottom)
-plt.scatter(x_df_right, z_df_right)
-plt.scatter(x_df_top, z_df_top)
-plt.scatter(x_df_left, z_df_left)
-
-
-# Labels and title
-plt.xlabel('x [mm]')
-plt.ylabel('z [mm]')
-plt.title('x-z Plane Plot')
-
-# Optional: equal scaling so units look correct
-plt.axis('equal')
 
 # Show plot
 plt.show()
