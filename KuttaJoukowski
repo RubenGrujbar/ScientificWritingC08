@@ -15,9 +15,9 @@ z_max = 40 #mm
 
 # Define how many additional boundaries to create and how large steps to take
 step = 2.596 #mm
-n_steps_z = 5
-n_steps_x = 5
-stepsize = 2 #each step will be this times step
+n_steps_z = 2
+n_steps_x = 2
+stepsize = 2 #each step will be this times step, i.e. 5 creates steps of 5*2.596 mm. Applies to both z and x
 
 # Load data
 
@@ -109,8 +109,7 @@ def lift(target_y, boundaries_x, boundaries_z, rho_inf, V_inf):
     top_cut    = top_cut.sort_values('x [mm]', ascending=False)
     left_cut   = left_cut.sort_values('z [mm]', ascending=False)
 
-    '''
-    #Remove and store corner points, for now unused
+    '''Remove and store corner points, for now unused
     bottom_cut_corner = bottom_cut.iloc[1:-1]
     right_cut_corner = right_cut.iloc[1:-1]
     left_cut_corner = left_cut.iloc[1:-1]
@@ -139,7 +138,6 @@ def lift(target_y, boundaries_x, boundaries_z, rho_inf, V_inf):
     # Combine 4 straights into ONE open loop (for now including corners)
     contour_straights = pd.concat([bottom_cut, right_cut, top_cut, left_cut])
     print(np.shape(contour_straights))
-   
 
     # ---- Compute circulation of 4 straights ----
     gamma_straight = circulation(
@@ -148,8 +146,6 @@ def lift(target_y, boundaries_x, boundaries_z, rho_inf, V_inf):
         contour_straights['Velocity u [m/s]'].values,
         contour_straights['Velocity w [m/s]'].values
     )
-
-    # ---- Compute circulation of 8 corners ----
 
     # Convert to lift
     lift = -rho_inf * V_inf * gamma_straight
@@ -166,7 +162,6 @@ for _ in range(n_steps_z):
     boundaries_z = [z_min, z_max]
     x_min_l = x_min
     x_max_l = x_max
-     
     for _ in range(n_steps_x):
         lift_coeff_values = []
         boundaries_x = [x_min_l, x_max_l]
@@ -176,9 +171,9 @@ for _ in range(n_steps_z):
         target_y = 101.457 #mm, starting y_point
         target_y_list =[]
         # Plotting of contour
-        x_df_bottom, z_df_bottom, x_df_right, z_df_right, x_df_top, z_df_top, x_df_left, z_df_left = lift(101.457, boundaries_x, boundaries_z, rho_inf, V_inf)[1:9]
+        x_df_bottom, z_df_bottom, x_df_right, z_df_right, x_df_top, z_df_top, x_df_left, z_df_left = lift(target_y, boundaries_x, boundaries_z, rho_inf, V_inf)[1:9]
 
-        color = colors[color_idx]   # <-- pick one color for this iteration
+        color = colors[color_idx]   # pick one color for this iterations plot
         color_idx += 1
 
         plt.scatter(x_df_bottom, z_df_bottom, alpha=0.5, color=color)
@@ -191,8 +186,9 @@ for _ in range(n_steps_z):
         plt.ylabel('z [mm]')
         plt.title('x-z Plane Plot')
 
-        # Optional: equal scaling so units look correct
+        # Equal scaling so units look correct
         plt.axis('equal')
+
         while target_y <= 450:
             target_y_list.append(target_y)
             lift_value = lift(target_y, boundaries_x, boundaries_z, rho_inf, V_inf)[0]
@@ -207,12 +203,10 @@ for _ in range(n_steps_z):
     z_min -= stepsize * step
     z_max += stepsize * step        
 
-
-
-# Show plot
+# Show Contour plot
 plt.show()
 
-# --- Plotting ---
+# --- Lift Plotting ---
 #Non-dimensionalize y for plotting
 span = 400
 target_y_array = np.array(target_y_list) / span
