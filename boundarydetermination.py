@@ -169,7 +169,7 @@ def plot_upper_boundary_profiles(filename, y_target, x_min=0.0, x_max=130.0, z_s
         # Integrating Vx with respect to x
         integral_val = np.trapz(vx_vals, x=x_vals)
         
-        label_str = f"z ≈ {actual_z:.1f} mm  |  $I_{{VR}}$ = {integral_val:.1f}"
+        label_str = f"z ≈ {actual_z:.1f} mm  |  $I_{{HU}}$ = {integral_val:.1f}"
 
         # PLOT AXES INVERTED: (Velocity on horizontal, x on vertical)
         plt.plot(vx_vals, x_vals, label=label_str, color=color, linewidth=1.5)
@@ -211,14 +211,14 @@ if __name__ == "__main__":
     
     plot_vz_profiles(
         filename=DATA_FILE, 
-        y_target=300.0, 
+        y_target=250.0, 
         x_start=130.0, 
         x_end=175.0, 
         x_step=2.5
     )
     plot_upper_boundary_profiles(
         filename=DATA_FILE, 
-        y_target=300.0, 
+        y_target=250.0, 
         x_min=0.0, 
         x_max=160.0, 
         z_start=-25, 

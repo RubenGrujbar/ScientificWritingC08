@@ -3,9 +3,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 from scipy.interpolate import griddata
 
-# ==============================================================================
-# 1. FLOW ANGLE ANALYSIS (Using the Velocity Dataset)
-# ==============================================================================
+# 1. FLOW ANGLE ANALYSIS
+
 # Load velocity data
 try:
     df_vel = pd.read_csv("Dataset NACA0015 Velocity and Standard deviation.csv", skipinitialspace=True)
@@ -17,7 +16,7 @@ try:
     col_u = 'Velocity u [m/s]'
     col_w = 'Velocity w [m/s]'
 
-    y_target = 300.0
+    y_target = 100.0
     calculated_slope = 0.2679492  # Default fallback slope
 
     # Filter for y ~ 300 mm
@@ -60,9 +59,9 @@ except FileNotFoundError:
     print("Notice: 'Dataset NACA0015 Velocity and Standard deviation.csv' not found. Using default slope.")
     calculated_slope = 0.2679492
 
-# ==============================================================================
+
 # 2. VORTICITY PLOTTING (Using the Gradient Dataset)
-# ==============================================================================
+
 # Load gradient data
 df_grad = pd.read_csv("gradient_results.csv", skipinitialspace=True)
 df_grad.columns = df_grad.columns.str.strip()
@@ -72,7 +71,7 @@ col_x_grad = 'x' if 'x' in df_grad.columns else 'x [mm]'
 col_y_grad = 'y' if 'y' in df_grad.columns else 'y [mm]'
 col_z_grad = 'z' if 'z' in df_grad.columns else 'z [mm]'
 
-y_target = 300.0
+y_target = 100.0
 
 # Slice the gradient dataset for plotting
 df_plot = df_grad[np.abs(df_grad[col_y_grad] - y_target) <= 5.0]
@@ -108,7 +107,7 @@ Xi, Zi = np.meshgrid(xi, zi)
 
 fig, axes = plt.subplots(1, 3, figsize=(fig_width, fig_height),
                          constrained_layout=True)
-fig.suptitle("Vorticity in the x-z plane (y ≈ 300 mm)", fontsize=14)
+fig.suptitle(f"Vorticity in the x-z plane (y ≈ {y_target} mm)", fontsize=14)
 
 # Base colormap 
 cmap = plt.get_cmap("RdBu_r").copy()
