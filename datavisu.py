@@ -136,6 +136,15 @@ def visualize_airfoil_piv(x, y, z, u, v, w, type,stl_path= r'C:\Users\alexa\OneD
 
     mesh.translate(grid_center - mesh_center)
 
+
+    # Get bounds of your data grid
+    xmin, xmax, ymin, ymax, zmin, zmax = grid.bounds
+
+    # Clip STL to match data volume
+    mesh_clipped = mesh.clip_box(bounds=grid.bounds, invert=False)
+
+    # Use clipped mesh instead
+    #plotter.add_mesh(mesh_clipped, color="lightgray")
     # -----------------------------
     # 4. Create slices
     # -----------------------------
@@ -143,7 +152,7 @@ def visualize_airfoil_piv(x, y, z, u, v, w, type,stl_path= r'C:\Users\alexa\OneD
     #slice = grid.slice(normal='y', origin=[0,grid.center[1],0])
     min_val, max_val = y.min(), y.max()
     positions = np.linspace(min_val, max_val-80, 5)
-    plotter = pv.Plotter()
+    plotter = pv.Plotter(off_screen=True)
 
     center = grid.center
     if type == 'v':
@@ -306,6 +315,7 @@ def visualize_airfoil_piv(x, y, z, u, v, w, type,stl_path= r'C:\Users\alexa\OneD
         # -----------------------------
         # 9. Matplotlib plot (non-blocking)
         # -----------------------------
+
         plt.ion()
         plt.figure()
 
@@ -327,7 +337,7 @@ def visualize_airfoil_piv(x, y, z, u, v, w, type,stl_path= r'C:\Users\alexa\OneD
         )
 
         # Airfoil
-        plotter.add_mesh(mesh, color="lightgray", opacity=1.0)
+        plotter.add_mesh(mesh_clipped, color="lightgray", opacity=1.0)
 
         # Vortex structures
         plotter.add_mesh(
@@ -342,21 +352,67 @@ def visualize_airfoil_piv(x, y, z, u, v, w, type,stl_path= r'C:\Users\alexa\OneD
         # -----------------------------
     #plotter.show(auto_close=False)
     # Add axes + better view
-    plotter.show(auto_close=False)  # keeps window open but doesn't block Python
-    plotter.add_axes()
-    plotter.show_grid()
+    #plotter.add_axes()
+    #plotter.show_grid()
 
     # Nice camera angle
-    plotter.camera_position = 'zy'
+    plotter.camera_position =[(364.33454087406733, 1034.0624653533628, -116.72001792193413),
+        (44.89354705810547, 257.818603515625, -6.211048126220703),
+        (0.030984611829599613, -0.1533612512099731, -0.9876843020201751)]
+    
+    plotter.render()  # force render
+    plotter.screenshot(r"C:\Users\alexa\OneDrive\Desktop\airfoil_q.png")
+    plotter.close()
     plt.plot()
+def calcForces(x,y,z,u,v,w, x1,x2,z1,z2,y1,y2):
+    x = 0.001*x.T
+    y = 0.001*y.T
+    z = 0.001*z.T
+    u = u.T
+    v = v.T
+    w = w.T
+    lens = []
+    xs = []
+    for i in range(y2-y1):
+        c = 0
+        #top
+        c += calcLine(x[x1:x2,y1 + i,z1],u[x1:x2,y1 + i,z1])
+        #bottom
+        c -= calcLine(x[x1:x2,y1 + i,z2],u[x1:x2,y1 + i,z2])
+        #left
+        c += calcLine(y[x1,y1 + i,z1:z2],w[x1,y1 + i,z1:z2])
+        #right
+        c-= calcLine(y[x2,y1 + i,z1:z2],w[x2,y1 + i,z1:z2])
+        lens.append(c)
+        xs.append(y[0,y1+i,0])
+            # -----------------------------
+    #plt.ion()
+    plt.figure()
+
+    plt.plot(xs, lens, '-o')
+    plt.xlabel('Spanwise location (mm)')
+    plt.ylabel('Integrated Q')
+    plt.title('Spanwise Q integral')
+    plt.grid()
+
+    plt.show()
 
 
+
+
+def calcLine(LinX,LinV):
+    x = (LinX[0:-2] + LinX[1:-1])/2
+    v = (LinV[0:-2] + LinV[1:-1])/2
+    dx = abs(x[1] - x[0])
+    s = 0
+    for i in range(len(x)):
+        s += dx*v[i]
+    return s
 if __name__ == "__main__":
 
     
     #current_dir = os.path.dirname(__file__) #Check file path of this file
     #file_path = os.path.join(current_dir, 'Dataset NACA0015 Velocity and Standard deviation.csv') #Build the file path for the dataset
-
     #df = pd.read_csv(file_path, index_col=0, delimiter=",", skipinitialspace=True)
     a = np.array([0,1,2,3,0,1,2,3,0,1,2,3])
     b = np.array([0,0,0,0,1,1,1,1,2,2,2,2])
@@ -395,6 +451,8 @@ if __name__ == "__main__":
     #print(z[:,70,:])
     visualize_airfoil_piv(x,y,z,u,v,w,'q')
     #print(Plt2DStreamVisu(x[:,70,:],z[:,70,:],u[:,70,:],v[:,70,:]))
+    #calcForces(x,y,z,u,v,w,20,160,20,100,0,120)
+
     
 
 
