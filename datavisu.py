@@ -90,7 +90,7 @@ def load_velocity_arrays_fast(url = "https://media.githubusercontent.com/media/R
         "Standard deviation V [m/s]", "Standard deviation Vx [m/s]",
         "Standard deviation Vy [m/s]", "Standard deviation Vz [m/s]"
     ]
-    df = pd.read_csv(r'C:\Users\alexa\OneDrive\Desktop\ScientificWritingC08\Dataset NACA0015 Velocity and Standard deviation.csv', index_col=0, delimiter=",", skipinitialspace=True)
+    df = pd.read_csv(r'C:\Users\Daria\Desktop\Test_AnalysisAndSimulation\ScientificWritingC08\Dataset NACA0015 Velocity and Standard deviation.csv', index_col=0, delimiter=",", skipinitialspace=True)
     df.columns = df.columns.str.replace("\ufeff", "").str.strip()
     for col in cols:
         if col not in df.columns:
@@ -99,7 +99,9 @@ def load_velocity_arrays_fast(url = "https://media.githubusercontent.com/media/R
     df[cols] = df[cols].replace([np.inf, -np.inf], np.nan).fillna(0).astype("float32")
     return tuple(df[col].to_numpy() for col in cols)
 
-def visualize_airfoil_piv(x, y, z, u, v, w, type,stl_path= r'C:\Users\alexa\OneDrive\Desktop\ScientificWritingC08\N15- Smooth 15 deg.stl'):
+def visualize_airfoil_piv(x, y, z, u, v, w, type,
+                          stl_path=r"C:\Users\Daria\Desktop\Test_AnalysisAndSimulation\ScientificWritingC08\N15- Smooth 15 deg.stl",
+                          plane_x=147.7, plane_z=-37.4, plane_y=250):
 
     # -----------------------------
     # 1. Load STL
@@ -143,8 +145,6 @@ def visualize_airfoil_piv(x, y, z, u, v, w, type,stl_path= r'C:\Users\alexa\OneD
     # Clip STL to match data volume
     mesh_clipped = mesh.clip_box(bounds=grid.bounds, invert=False)
 
-    # Use clipped mesh instead
-    #plotter.add_mesh(mesh_clipped, color="lightgray")
     # -----------------------------
     # 4. Create slices
     # -----------------------------
@@ -152,9 +152,51 @@ def visualize_airfoil_piv(x, y, z, u, v, w, type,stl_path= r'C:\Users\alexa\OneD
     #slice = grid.slice(normal='y', origin=[0,grid.center[1],0])
     min_val, max_val = y.min(), y.max()
     positions = np.linspace(min_val, max_val-80, 5)
-    plotter = pv.Plotter(off_screen=True)
+    plotter = pv.Plotter(off_screen=False)
 
     center = grid.center
+
+    # -----------------------------
+    # NEW: Add delimitation planes
+    # -----------------------------
+    '''
+    if plane_x is not None:
+        # YZ-plane at given X value
+        yz_plane = pv.Plane(
+            center=(plane_x, (ymin + ymax) / 2, (zmin + zmax) / 2),
+            direction=(1, 0, 0),          # normal pointing in X
+            i_size=(ymax - ymin),
+            j_size=(zmax - zmin),
+            i_resolution=1,
+            j_resolution=1
+        )
+        plotter.add_mesh(yz_plane, color="red", opacity=0.6, show_edges=True, edge_color="red")
+
+    if plane_z is not None:
+        # XY-plane at given Z value
+        xy_plane = pv.Plane(
+            center=((xmin + xmax) / 2, (ymin + ymax) / 2, plane_z),
+            direction=(0, 0, 1),          # normal pointing in Z
+            i_size=(xmax - xmin),
+            j_size=(ymax - ymin),
+            i_resolution=1,
+            j_resolution=1
+        )
+        plotter.add_mesh(xy_plane, color="red", opacity=0.6, show_edges=True, edge_color="red")
+    '''
+    # Added Plane at Y = 250
+    if plane_y is not None:
+        # XZ-plane at given Y value
+        xz_plane = pv.Plane(
+            center=((xmin + xmax) / 2, plane_y, (zmin + zmax) / 2),
+            direction=(0, 1, 0),          # normal pointing in Y
+            i_size=(xmax - xmin),
+            j_size=(zmax - zmin),
+            i_resolution=1,
+            j_resolution=1
+        )
+        plotter.add_mesh(xz_plane, color="red", opacity=0.6, show_edges=True, edge_color="red")
+
     if type == 'v':
         slices = []
 
@@ -166,12 +208,6 @@ def visualize_airfoil_piv(x, y, z, u, v, w, type,stl_path= r'C:\Users\alexa\OneD
 
             if slice_plane.n_points > 0:   # avoid empty slices
                 slices.append(slice_plane)
-        #slices = grid.slice_along_axis(n=5, axis='y')
-        #slices = grid.slice_orthogonal(x=None, y=None, z=None)
-
-        # -----------------------------
-        # 5. Plot
-        # -----------------------------
 
         # Airfoil surface
         plotter.add_mesh(mesh, color="lightgray")
@@ -184,83 +220,7 @@ def visualize_airfoil_piv(x, y, z, u, v, w, type,stl_path= r'C:\Users\alexa\OneD
                 cmap="jet",
                 opacity=0.9
             )
-    #plotter.add_mesh(slice_plane, scalars='speed', cmap='jet', opacity=0.9)
-    """
-    if type == 'q':
-        #grid = grid.gaussian_smooth(radius_factor=1.5)
-        # -----------------------------
-        # 4. Compute velocity gradient
-        # -----------------------------
-        # Number of cells to remove from each boundary
-        
-        pad = 15   # try 2–5 depending on your grid
 
-        mask = np.zeros_like(x, dtype=bool)
-
-        mask[pad:-pad, pad:-pad, pad:-pad] = True
-
-        # Flatten mask to match grid
-        mask_flat = mask.reshape(-1)
-
-        # Extract only interior points
-        grid = grid.extract_points(mask_flat, adjacent_cells=True)
-        deriv = grid.compute_derivative(scalars="velocity", gradient=True)
-        grad = deriv["gradient"].reshape(-1, 3, 3)
-
-        # -----------------------------
-        # 5. Compute Q-criterion (vectorized)
-        # -----------------------------
-        S = 0.5 * (grad + np.transpose(grad, (0, 2, 1)))      # strain tensor
-        Omega = 0.5 * (grad - np.transpose(grad, (0, 2, 1)))  # rotation tensor
-
-        S2 = np.sum(S**2, axis=(1, 2))
-        Omega2 = np.sum(Omega**2, axis=(1, 2))
-
-        Q = 0.5 * (Omega2 - S2)
-        Q = Q/1e6
-        Nx_int = Nx - 2*pad
-        Ny_int = Ny - 2*pad
-        Nz_int = Nz - 2*pad
-        matq = Q.reshape(Nz_int,Ny_int,Nx_int)
-        yspn = []
-        spn = []
-        for i in range(len(matq[0,:,0])):
-            yspn.append(sum(matq[:,i,:]))
-            spn.append(y[0,i+15,0])
-        plt.ion()
-        plt.plot(spn, yspn, '-o')
-        plt.set_xlabel('Spanwise location (m)')
-        plt.set_ylabel('Integrated Q (s^-2)')
-        plt.set_title('Spanwise Q integral')
-        plt.show()
-
-        grid["Q"] = Q
-
-        # -----------------------------
-        # 6. Choose threshold (tunable!)
-        # -----------------------------
-        q_threshold = np.percentile(Q, 98)
-
-        # -----------------------------
-        # 7. Extract vortex structures
-        # -----------------------------
-        vortices = grid.contour(
-            isosurfaces=[q_threshold],
-            scalars="Q"
-        )
-
-        # -----------------------------
-        # 8. Plot
-        # -----------------------------
-        plotter.add_mesh(mesh, color="lightgray", opacity=1.0)
-
-        plotter.add_mesh(
-            vortices,
-            scalars="speed",
-            cmap="plasma",
-            opacity=1.0
-        )
-    """
     if type == 'q':
         # -----------------------------
         # 4. Compute velocity gradient
@@ -304,7 +264,6 @@ def visualize_airfoil_piv(x, y, z, u, v, w, type,stl_path= r'C:\Users\alexa\OneD
         # -----------------------------
         # 8. Spanwise Q integral
         # -----------------------------
-        # Sum over x and y → function of z (span)
         q_threshold = np.percentile(Q, 98)
 
         Q_span = np.sum(Q_3D_filtered, axis=(0, 2))
@@ -347,23 +306,18 @@ def visualize_airfoil_piv(x, y, z, u, v, w, type,stl_path= r'C:\Users\alexa\OneD
             opacity=1.0
         )
 
-        # -----------------------------
-        # 11. Show PyVista (non-blocking)
-        # -----------------------------
-    #plotter.show(auto_close=False)
-    # Add axes + better view
-    #plotter.add_axes()
-    #plotter.show_grid()
-
-    # Nice camera angle
-    plotter.camera_position =[(364.33454087406733, 1034.0624653533628, -116.72001792193413),
-        (44.89354705810547, 257.818603515625, -6.211048126220703),
-        (0.030984611829599613, -0.1533612512099731, -0.9876843020201751)]
+    #plotter.camera_position =[(364.33454087406733, 1034.0624653533628, -116.72001792193413),
+        #(44.89354705810547, 257.818603515625, -6.211048126220703),
+        #(0.030984611829599613, -0.1533612512099731, -0.9876843020201751)]
     
     plotter.render()  # force render
-    plotter.screenshot(r"C:\Users\alexa\OneDrive\Desktop\airfoil_q.png")
-    plotter.close()
+    plotter.add_axes()
+    plotter.show_grid()
+    plotter.camera.up = (0, 0, -1)  # flip Z axis
+    #plotter.screenshot(r"C:\Users\alexa\OneDrive\Desktop\airfoil_q.png")
+    plotter.show()
     plt.plot()
+
 def calcForces(x,y,z,u,v,w, x1,x2,z1,z2,y1,y2):
     x = 0.001*x.T
     y = 0.001*y.T
@@ -398,8 +352,6 @@ def calcForces(x,y,z,u,v,w, x1,x2,z1,z2,y1,y2):
     plt.show()
 
 
-
-
 def calcLine(LinX,LinV):
     x = (LinX[0:-2] + LinX[1:-1])/2
     v = (LinV[0:-2] + LinV[1:-1])/2
@@ -408,51 +360,16 @@ def calcLine(LinX,LinV):
     for i in range(len(x)):
         s += dx*v[i]
     return s
+
 if __name__ == "__main__":
 
-    
-    #current_dir = os.path.dirname(__file__) #Check file path of this file
-    #file_path = os.path.join(current_dir, 'Dataset NACA0015 Velocity and Standard deviation.csv') #Build the file path for the dataset
-    #df = pd.read_csv(file_path, index_col=0, delimiter=",", skipinitialspace=True)
-    a = np.array([0,1,2,3,0,1,2,3,0,1,2,3])
-    b = np.array([0,0,0,0,1,1,1,1,2,2,2,2])
-    c = np.array([20,20,20,20,20,20,20,20,20,20,20,20])
-    #print(a.reshape(3,4,1))
-    #print(b.reshape(3,4,1))
-    #print(c.reshape(3,4,1))
-    
-    
-    #data = pd.read_csv(r'C:\Users\alexa\OneDrive\Desktop\ScientificWritingC08\cleaned_dataset.csv')
-    #x = data["x [mm]"].to_numpy()
-    #y = data["y [mm]"].to_numpy()
-    #z = data["z [mm]"].to_numpy()
-    #u = data["Velocity u [m/s]"].to_numpy()
-    #v = data["Velocity v [m/s]"].to_numpy()
-    #w = data["Velocity w [m/s]"].to_numpy()
-    #print(x[0])
-    
     x, y, z, u, v, w, std_V, std_Vx, std_Vy, std_Vz = load_velocity_arrays_fast()
     print('hello')
     x = x.reshape(123,137,180)
-    #print(x[0][0][0])
     y = y.reshape(123,137,180)
     z = z.reshape(123,137,180)
     u = u.reshape(123,137,180)
     v= v.reshape(123,137,180)
     w = w.reshape(123,137,180)
-    #print(np.transpose(x[:,80,:]))
-    #print(np.transpose(x[:,80,:]))
 
-    #print(z)
-    #print(x[:,70,:])
-
-    #print(y[0,70,0])
-    #print(x[:,70,:])
-    #print(z[:,70,:])
-    visualize_airfoil_piv(x,y,z,u,v,w,'q')
-    #print(Plt2DStreamVisu(x[:,70,:],z[:,70,:],u[:,70,:],v[:,70,:]))
-    #calcForces(x,y,z,u,v,w,20,160,20,100,0,120)
-
-    
-
-
+    visualize_airfoil_piv(x, y, z, u, v, w, 'q')
