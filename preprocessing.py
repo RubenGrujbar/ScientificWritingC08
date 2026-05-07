@@ -44,13 +44,7 @@ def plot_zero_velocity_heatmap():
         axes[i].invert_yaxis()
     plt.tight_layout()
     plt.show()
-<<<<<<< HEAD
 
-=======
-x, y, z, u, v, w, std_V, std_Vx, std_Vy, std_Vz = load_velocity_arrays_fast()
-print ("done")
->>>>>>> 13c570fa961ba6ebd47ae5e5b70637b24011dd4f
-#plot_zero_velocity_heatmap()
 
 def airfoil_coords():
     x, y, z, u, v, w, std_V, std_Vx, std_Vy, std_Vz = load_velocity_arrays_fast()
@@ -70,3 +64,17 @@ def airfoil_coords():
 #plt.xlim(-200, 200)   # x axis limits
 #plt.ylim(200, -200)
 #plt.show()
+
+
+x, y, z, u, v, w, stdV, stdVx, stdVy, stdVz = load_velocity_arrays_fast()
+
+cols = [x, y, z, u, v, w, stdV, stdVx, stdVy, stdVz]
+names = [
+    "x [mm]", "y [mm]", "z [mm]",
+    "Velocity u [m/s]", "Velocity v [m/s]", "Velocity w [m/s]",
+    "Standard deviation V [m/s]", "Standard deviation Vx [m/s]",
+    "Standard deviation Vy [m/s]", "Standard deviation Vz [m/s]"
+]
+
+for name, col in zip(names, cols):
+    print(f"{name}: lower = {col.min()}, upper = {col.max()}")
