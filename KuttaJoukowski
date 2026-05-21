@@ -9,15 +9,15 @@ rho_inf = 1.204 #kg/m^3
 
 #Define the initial target boundaries 
 x_min = -20 #mm
-x_max = 160 #mm
-z_min = -50 #-73.7038 mm
+x_max = 147.7 #mm
+z_min = -37.2 #-73.7038 mm
 z_max = 40 #mm
 
 # Define how many additional boundaries to create and how large steps to take
 step = 2.596 #mm
-n_steps_z = 2
-n_steps_x = 2
-stepsize = 2 #each step will be this times step, i.e. 5 creates steps of 5*2.596 mm. Applies to both z and x
+n_steps_z = 1
+n_steps_x = 1
+stepsize = 1 #each step will be this times step, i.e. 5 creates steps of 5*2.596 mm. Applies to both z and x
 
 # Load data
 
@@ -188,6 +188,7 @@ for _ in range(n_steps_z):
 
         # Equal scaling so units look correct
         plt.axis('equal')
+        plt.gca().invert_yaxis()
 
         while target_y <= 450:
             target_y_list.append(target_y)
@@ -237,7 +238,7 @@ for i, lift_coeff_values in enumerate(all_lift_coef_values):
     if n_plots > 1:
         color = cmap(i / (n_plots - 1))
     else:
-        color = 'r'
+        color = 'b'
 
     mse = np.mean((lift_coeff_values[mask] - NC15_interp[mask]) ** 2)
     print(f'Case {i}: MSE (y ∈ [0,1]) = {mse:.6e}')
@@ -245,23 +246,25 @@ for i, lift_coeff_values in enumerate(all_lift_coef_values):
     plt.plot(
         target_y_array[mask],
         lift_coeff_values[mask],
+        linewidth = 3,
         color=color,
         label=(
-            f'Case ('
-            f'[{all_boundaries_x[i][0]:.2f}, {all_boundaries_x[i][1]:.2f}], '
-            f'[{all_boundaries_z[i][0]:.2f}, {all_boundaries_z[i][1]:.2f}]'
-            f') | MSE={mse:.2e}'
+            f'Kutta-Joukowsky'
+            #f'[{all_boundaries_x[i][0]:.2f}, {all_boundaries_x[i][1]:.2f}], '
+            #f'[{all_boundaries_z[i][0]:.2f}, {all_boundaries_z[i][1]:.2f}]'
+            #f') | MSE={mse:.2e}'
         )
     )
 
 # Plot sorted reference (also masked)
 ref_mask = (NC15_y_sorted >= 0) & (NC15_y_sorted <= 1)
-plt.plot(NC15_y_sorted[ref_mask], NC15_m_sorted[ref_mask], 'r', label=r'$\alpha = 15^\circ$')
+plt.plot(NC15_y_sorted[ref_mask], NC15_m_sorted[ref_mask], linewidth = 3, color = 'r', label=r'Full 3D control volume')
 
-plt.xlabel('y')
-plt.ylabel('Lift coefficient')
-plt.legend()
+plt.xlabel('Normalized span position (y/span) [-]', fontsize=16)
+plt.ylabel('Sectional lift coefficient [-]', fontsize=16)
+plt.legend(fontsize=16)
 plt.xlim(0.2601325, 1)
+plt.grid(True)
 plt.show()
 
 ''''
