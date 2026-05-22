@@ -131,7 +131,7 @@ def lift(target_y, boundaries_x, boundaries_z, rho_inf, V_inf):
     # ---- Combine 4 straights into ONE open loop ----
     contour_straights = pd.concat([bottom_cut_corner, right_cut_corner, top_cut_corner, left_cut_corner])
     contour = pd.concat([bottom_cut, right_cut, top_cut, left_cut])
-    print(np.shape(contour_straights))
+    # print(np.shape(contour_straights))
 
     # ---- Combine 8 corner pieces into ONE open loop ----
     #contour_corners = pd.concat([bottom_first, bottom_last, right_first, right_last, top_first, top_last, left_first, left_last])
@@ -330,3 +330,251 @@ plt.ylabel('Lift coefficient')
 plt.legend()
 plt.show()
 '''
+
+
+# ------ Plotting MSE -------
+
+import matplotlib.ticker as ticker
+
+file_path = os.path.join(os.getcwd(), 'Dataset NACA0015 Velocity and Standard deviation.csv')
+
+if not os.path.exists(file_path):
+    raise FileNotFoundError(f"File not found at: {file_path}")
+
+df = pd.read_csv(file_path)
+x_unique = np.unique(df['x [mm]'])
+z_unique = np.unique(df['z [mm]'])
+
+
+chord = 100
+# step = 2.596 #mm
+
+# x_min_start = -20 - 6*step
+# x_max_start = 147.7 + 6*step
+# z_min_start = -37.2 - 6*step
+# z_max_start = 40 + 6*step
+
+# x_min_end = -20 + 6*step
+# x_max_end = 147.7 - 6*step
+# z_min_end = -37.2 + 6*step
+# z_max_end = 40 - 6*step
+
+# Define your reference (optimal) contour boundaries
+x_min_ref = -20
+x_max_ref =  147.7
+z_min_ref = -37.4
+z_max_ref =  40
+
+# Search range: vary ± n steps around the reference
+n_steps_x_3D = 6
+n_steps_z_3D = 6
+half_range = 3  # steps in each direction
+
+# x_min moves inward/outward on the LEFT side
+x_min_start = x_min_ref - half_range * step  # further left (bigger contour)
+x_min_end   = x_min_ref + half_range * step  # further right (smaller contour)
+
+# x_max moves outward/inward on the RIGHT side — OPPOSITE direction
+x_max_start = x_max_ref + half_range * step  # further right (bigger contour)
+x_max_end   = x_max_ref - half_range * step  # further left (smaller contour)
+
+# Same logic for z
+z_min_start = z_min_ref - half_range * step  # further down (bigger)
+z_min_end   = z_min_ref + half_range * step  # further up (smaller)
+
+z_max_start = z_max_ref + half_range * step  # further up (bigger)
+z_max_end   = z_max_ref - half_range * step  # further down (smaller)
+
+
+x_max_targets = np.linspace(x_max_start, x_max_end, n_steps_x_3D)
+x_min_targets = np.linspace(x_min_start, x_min_end, n_steps_x_3D)
+z_max_targets = np.linspace(z_max_start, z_max_end, n_steps_z_3D)
+z_min_targets = np.linspace(z_min_start, z_min_end, n_steps_z_3D)
+
+def snap_to_nearest(targets, actual_values):
+    snapped = np.array([actual_values[np.argmin(np.abs(actual_values - t))] for t in targets ])
+    return snapped
+
+x_min_values = snap_to_nearest(x_min_targets, x_unique)
+x_max_values = snap_to_nearest(x_max_targets, x_unique)
+z_min_values = snap_to_nearest(z_min_targets, z_unique)
+z_max_values = snap_to_nearest(z_max_targets, z_unique)
+
+
+
+x_axis = (x_max_values - x_min_values)/chord
+z_axis = (z_max_values - z_min_values)/chord
+
+
+# --- Multiple spanwise locations (exclude 3D-dominated tip/root regions) ---
+# Adjust these bounds to match your known 2D-dominated region
+y_start   = 101.457   # first valid spanwise location [mm]
+y_end     = 350.0     # last valid spanwise location (before 3D effects dominate) [mm]
+y_locations = np.arange(y_start, y_end + step, step)
+
+RMSE_grid = np.full((n_steps_x_3D, n_steps_z_3D), np.nan)
+
+for i in range(n_steps_x_3D):
+    for k in range(n_steps_z_3D):
+        # boundaries_x = [x_min_values[i], x_max_values[i]]
+        # boundaries_z = [z_min_values[k], z_max_values[k]]
+
+        # all_squared_errors = []
+
+        # for target_y in y_locations:
+        #     cl_prime_list = []
+        #     target_y_list = []
+        #     y = target_y
+
+        #     while y <= 450:
+        #         lift_value = lift(y, boundaries_x, boundaries_z, rho_inf, V_inf)[0]
+        #         lift_coeff_prime = (2 * lift_value) / (rho_inf * (V_inf**2) * 0.1)
+        #         cl_prime_list.append(lift_coeff_prime)
+        #         target_y_list.append(y)
+        #         y += step
+
+        #     # Non-dimensionalise y
+        #     target_y_array = np.array(target_y_list) / span
+        #     lift_coeff_values = np.array(cl_prime_list)
+
+        #     # Interpolate reference onto computed y points
+        #     NC15_interp = np.interp(target_y_array, NC15_y_sorted, NC15_m_sorted)
+
+        #     # Mask to reference data range
+        #     mask = (target_y_array >= NC15_y_sorted[0]) & (target_y_array <= NC15_y_sorted[-1])
+
+        #     if mask.sum() > 0:
+        #         sq_errors = (lift_coeff_values[mask] - NC15_interp[mask]) ** 2
+        #         all_squared_errors.extend(sq_errors.tolist())
+
+        # # RMSE across all spanwise locations
+        # if len(all_squared_errors) > 0:
+        #     RMSE_grid[i, k] = np.sqrt(np.mean(all_squared_errors))
+        print(f"Running i={i}, k={k}...", flush=True)
+        boundaries_x = [x_min_values[i], x_max_values[i]]
+        boundaries_z = [z_min_values[k], z_max_values[k]]
+
+        all_squared_errors = []
+
+        for target_y in y_locations:
+            lift_value = lift(target_y, boundaries_x, boundaries_z, rho_inf, V_inf)[0]
+            lift_coeff = (2 * lift_value) / (rho_inf * (V_inf**2) * 0.1)
+
+            # Non-dimensionalise
+            y_nd = target_y / span
+
+            # Only include if within reference data range
+            if NC15_y_sorted[0] <= y_nd <= NC15_y_sorted[-1]:
+                NC15_interp_val = np.interp(y_nd, NC15_y_sorted, NC15_m_sorted)
+                all_squared_errors.append((lift_coeff - NC15_interp_val) ** 2)
+
+        if len(all_squared_errors) > 0:
+            RMSE_grid[i, k] = np.sqrt(np.mean(all_squared_errors))
+
+
+X_mesh, Z_mesh = np.meshgrid(x_axis, z_axis, indexing='ij')
+
+# ---- DIAGNOSTIC ----
+min_idx = np.unravel_index(np.nanargmin(RMSE_grid), RMSE_grid.shape)
+print(f"Minimum RMSE: {np.nanmin(RMSE_grid):.6f}")
+print(f"At grid index: {min_idx}")
+print(f"New x_min_ref = {x_min_values[min_idx[0]]:.4f}")
+print(f"New x_max_ref = {x_max_values[min_idx[0]]:.4f}")
+print(f"New z_min_ref = {z_min_values[min_idx[1]]:.4f}")
+print(f"New z_max_ref = {z_max_values[min_idx[1]]:.4f}")
+# ---- END DIAGNOSTIC ----
+
+# ------ Plot ------
+fig = plt.figure()
+ax = fig.add_subplot(111, projection='3d')
+
+surf = ax.plot_surface(
+    X_mesh, Z_mesh, RMSE_grid,
+    cmap='RdYlGn_r',
+    edgecolor='k',
+    linewidth=0.3,
+    alpha=0.95
+)
+
+# Colorbar with ×10⁻³ scaling
+scale = 1e3
+cbar = fig.colorbar(surf, ax=ax, shrink=0.5)
+cbar.set_label(r'$RMSE\ [\times 10^{-3}]$')
+cbar.formatter = ticker.FuncFormatter(lambda x, _: f'{x * scale:.2f}')
+cbar.update_ticks()
+
+# Scale z-axis tick labels too
+ax.zaxis.set_major_formatter(ticker.FuncFormatter(lambda x, _: f'{x * scale:.2f}'))
+
+ax.set_xlabel('Contour width $x/c$ [-]')
+ax.set_ylabel('Contour height $z/c$ [-]')
+ax.set_zlabel(r'$RMSE\ [\times 10^{-3}]$')
+
+plt.tight_layout()
+plt.show()
+
+# # CL_grid = np.full((n_steps_x, n_steps_z), np.nan)
+# MSE_grid = np.full((n_steps_x_3D, n_steps_z_3D), np.nan)
+
+# for i in range(n_steps_x_3D):
+#     for k in range(n_steps_z_3D):
+#         boundaries_x = [x_min_values[i], x_max_values[i]]
+#         boundaries_z = [z_min_values[k], z_max_values[k]]
+
+#         cl_prime_list = []
+#         target_y_list = []
+#         target_y = 101.457
+        
+#         while target_y <= 450:
+#             lift_value = lift(target_y, boundaries_x, boundaries_z, rho_inf, V_inf)[0]
+#             lift_coeff_prime = (2 * lift_value) / (rho_inf * (V_inf**2) * 0.1)
+#             cl_prime_list.append(lift_coeff_prime)
+#             target_y_list.append(target_y)
+#             target_y += step
+
+#         # Non-dimensionalize y
+#         target_y_array = np.array(target_y_list) / span
+#         lift_coeff_values = np.array(cl_prime_list)
+
+#         # Interpolate reference onto computed y points
+#         NC15_interp = np.interp(target_y_array, NC15_y_sorted, NC15_m_sorted)
+
+#         # Mask to reference data range
+#         mask = (target_y_array >= NC15_y_sorted[0]) & (target_y_array <= NC15_y_sorted[-1])
+
+#         # MSE
+#         mse = np.mean((lift_coeff_values[mask] - NC15_interp[mask]) ** 2)
+#         MSE_grid[i, k] = mse
+
+
+# X_mesh, Z_mesh = np.meshgrid(x_axis, z_axis, indexing = 'ij')
+
+
+# # ---- DIAGNOSTIC: run after loop, copy the printed numbers into ref values above ----
+# min_idx = np.unravel_index(np.nanargmin(MSE_grid), MSE_grid.shape)
+# print(f"Minimum MSE: {np.nanmin(MSE_grid):.6f}")
+# print(f"At grid index: {min_idx}")
+# print(f"New x_min_ref = {x_min_values[min_idx[0]]:.4f}")
+# print(f"New x_max_ref = {x_max_values[min_idx[0]]:.4f}")
+# print(f"New z_min_ref = {z_min_values[min_idx[1]]:.4f}")
+# print(f"New z_max_ref = {z_max_values[min_idx[1]]:.4f}")
+# # ---- END DIAGNOSTIC ----
+
+# fig = plt.figure()
+# ax = fig.add_subplot(111, projection='3d')
+
+# surf = ax.plot_surface(
+#     X_mesh, Z_mesh, MSE_grid,
+#     cmap='RdYlGn_r',
+#     edgecolor='k',
+#     linewidth=0.3,
+#     alpha=0.95
+# )
+
+# fig.colorbar(surf, ax=ax, shrink=0.5, label='$MSE$ [-]')
+# ax.set_xlabel('Contour width x/c [-]')
+# ax.set_ylabel('Contour height z/c [-]')
+# ax.set_zlabel('Mean Squared Error $MSE$ [-]')
+
+# plt.tight_layout()
+# plt.show()

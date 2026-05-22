@@ -83,6 +83,26 @@ def Plt2DStreamVisu(X, Y, U, V, xa = Xa, ya = Ya):
     plt.show()
     return 'worked'
 
+# def load_velocity_arrays_fast(url = "https://media.githubusercontent.com/media/RubenGrujbar/ScientificWritingC08/main/Dataset%20NACA0015%20Velocity%20and%20Standard%20deviation.csv"):
+#     cols = [
+#         "x [mm]", "y [mm]", "z [mm]",
+#         "Velocity u [m/s]", "Velocity v [m/s]", "Velocity w [m/s]",
+#         "Standard deviation V [m/s]", "Standard deviation Vx [m/s]",
+#         "Standard deviation Vy [m/s]", "Standard deviation Vz [m/s]"
+#     ]
+#     df = pd.read_csv(r'C:\Users\alexa\OneDrive\Desktop\ScientificWritingC08\Dataset NACA0015 Velocity and Standard deviation.csv', index_col=0, delimiter=",", skipinitialspace=True)
+#     df.columns = df.columns.str.replace("\ufeff", "").str.strip()
+#     for col in cols:
+#         if col not in df.columns:
+#             df[col] = np.nan
+#     df[cols] = df[cols].apply(pd.to_numeric, errors="coerce")
+#     df[cols] = df[cols].replace([np.inf, -np.inf], np.nan).fillna(0).astype("float32")
+#     return tuple(df[col].to_numpy() for col in cols)
+
+
+
+# def visualize_airfoil_piv(x, y, z, u, v, w, type,stl_path= r'C:\Users\alexa\OneDrive\Desktop\ScientificWritingC08\N15- Smooth 15 deg.stl'):
+
 def load_velocity_arrays_fast(url = "https://media.githubusercontent.com/media/RubenGrujbar/ScientificWritingC08/main/Dataset%20NACA0015%20Velocity%20and%20Standard%20deviation.csv"):
     cols = [
         "x [mm]", "y [mm]", "z [mm]",
@@ -90,7 +110,7 @@ def load_velocity_arrays_fast(url = "https://media.githubusercontent.com/media/R
         "Standard deviation V [m/s]", "Standard deviation Vx [m/s]",
         "Standard deviation Vy [m/s]", "Standard deviation Vz [m/s]"
     ]
-    df = pd.read_csv(r'C:\Users\alexa\OneDrive\Desktop\ScientificWritingC08\Dataset NACA0015 Velocity and Standard deviation.csv', index_col=0, delimiter=",", skipinitialspace=True)
+    df = pd.read_csv(url, index_col=0, delimiter=",", skipinitialspace=True)
     df.columns = df.columns.str.replace("\ufeff", "").str.strip()
     for col in cols:
         if col not in df.columns:
@@ -99,8 +119,7 @@ def load_velocity_arrays_fast(url = "https://media.githubusercontent.com/media/R
     df[cols] = df[cols].replace([np.inf, -np.inf], np.nan).fillna(0).astype("float32")
     return tuple(df[col].to_numpy() for col in cols)
 
-def visualize_airfoil_piv(x, y, z, u, v, w, type,stl_path= r'C:\Users\alexa\OneDrive\Desktop\ScientificWritingC08\N15- Smooth 15 deg.stl'):
-
+def visualize_airfoil_piv(x, y, z, u, v, w, type,stl_path= 'N15- Smooth 15 deg.stl'):
     # -----------------------------
     # 1. Load STL
     # -----------------------------

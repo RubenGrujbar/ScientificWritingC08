@@ -142,8 +142,8 @@ z_unique = np.unique(df['z [mm]'])
 chord = 100
 step = 2.596 #mm
 
-n_steps_x = 20
-n_steps_z = 20
+n_steps_x = 5
+n_steps_z = 5
 
 
 x_max_start = 100
@@ -174,27 +174,60 @@ z_max_values = snap_to_nearest(z_max_targets, z_unique)
 x_axis = (x_max_values - x_min_values)/chord
 z_axis = (z_max_values - z_min_values)/chord
 
-CL_grid = np.full((n_steps_x, n_steps_z), np.nan)
+# CL_grid = np.full((n_steps_x, n_steps_z), np.nan)
+MSE_grid = np.full((n_steps_x, n_steps_z), np.nan)
 V_inf = 6.35 #m/s
 rho_inf = 1.204 #kg/m^3
+
+# for i in range(n_steps_x):
+#     for k in range(n_steps_z):
+#         boundaries_x = [x_min_values[i], x_max_values[i]]
+#         boundaries_z = [z_min_values[k], z_max_values[k]]
+
+#         # cl_prime_span = []
+#         cl_span = 0
+#         target_y = 101.457 #mm, starting y_point
+#         while target_y <= 450:
+#             print(i, k)
+#             lift_value = lift(target_y, boundaries_x, boundaries_z, rho_inf, V_inf)
+#             lift_coeff_prime = (2*lift_value)/(rho_inf*(V_inf**2)*0.1)
+#             # cl_prime_span.append(lift_coeff)
+#             cl_span += lift_coeff_prime*step 
+#             target_y += step 
+            
+        
+#         CL_grid[i,k] =  cl_span / (450 - 101.457)
+
 
 for i in range(n_steps_x):
     for k in range(n_steps_z):
         boundaries_x = [x_min_values[i], x_max_values[i]]
         boundaries_z = [z_min_values[k], z_max_values[k]]
 
-        cl_span = []
-        target_y = 101.457 #mm, starting y_point
+        cl_prime_list = []
+        target_y_list = []
+        target_y = 101.457
+        
         while target_y <= 450:
-            print(i, k)
             lift_value = lift(target_y, boundaries_x, boundaries_z, rho_inf, V_inf)
-            lift_coeff = (2*lift_value)/(rho_inf*(V_inf**2)*0.1)
-            cl_span.append(lift_coeff)
-            target_y += step 
-            
+            lift_coeff_prime = (2 * lift_value) / (rho_inf * (V_inf**2) * 0.1)
+            cl_prime_list.append(lift_coeff_prime)
+            target_y_list.append(target_y)
+            target_y += step
 
-        CL_grid[i,k] =  np.mean(cl_span)
+        # Non-dimensionalize y
+        target_y_array = np.array(target_y_list) / span
+        lift_coeff_values = np.array(cl_prime_list)
 
+        # Interpolate reference onto computed y points
+        NC15_interp = np.interp(target_y_array, NC15_y_sorted, NC15_m_sorted)
+
+        # Mask to reference data range
+        mask = (target_y_array >= NC15_y_sorted[0]) & (target_y_array <= NC15_y_sorted[-1])
+
+        # MSE
+        mse = np.mean((lift_coeff_values[mask] - NC15_interp[mask]) ** 2)
+        MSE_grid[i, k] = mse
 
 X_mesh, Z_mesh = np.meshgrid(x_axis, z_axis, indexing = 'ij')
 
@@ -202,7 +235,7 @@ fig = plt.figure()
 ax = fig.add_subplot(111, projection='3d')
 
 surf = ax.plot_surface(
-    X_mesh, Z_mesh, CL_grid,
+    X_mesh, Z_mesh, MSE_grid,
     cmap='RdYlGn',
     edgecolor='k',
     linewidth=0.3,
