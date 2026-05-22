@@ -1,13 +1,9 @@
-import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-#from preprocessing import load_velocity_arrays_fast
-import os
 import pyvista as pv
 
-Xa = []
-Ya = []
 
+<<<<<<< HEAD
 
 def Plt2DStreamVisu(X, Y, U, V, xa = Xa, ya = Ya):
     
@@ -104,13 +100,23 @@ def Plt2DStreamVisu(X, Y, U, V, xa = Xa, ya = Ya):
 # def visualize_airfoil_piv(x, y, z, u, v, w, type,stl_path= r'C:\Users\alexa\OneDrive\Desktop\ScientificWritingC08\N15- Smooth 15 deg.stl'):
 
 def load_velocity_arrays_fast(url = "https://media.githubusercontent.com/media/RubenGrujbar/ScientificWritingC08/main/Dataset%20NACA0015%20Velocity%20and%20Standard%20deviation.csv"):
+=======
+def load_velocity_arrays_fast(
+        url="https://media.githubusercontent.com/media/RubenGrujbar/ScientificWritingC08/main/Dataset%20NACA0015%20Velocity%20and%20Standard%20deviation.csv"):
+>>>>>>> e612c781f46beef2d09ec211122412a56a608dc3
     cols = [
         "x [mm]", "y [mm]", "z [mm]",
         "Velocity u [m/s]", "Velocity v [m/s]", "Velocity w [m/s]",
         "Standard deviation V [m/s]", "Standard deviation Vx [m/s]",
         "Standard deviation Vy [m/s]", "Standard deviation Vz [m/s]"
     ]
+<<<<<<< HEAD
     df = pd.read_csv(url, index_col=0, delimiter=",", skipinitialspace=True)
+=======
+    df = pd.read_csv(
+        r'C:\Users\Daria\Desktop\Test_AnalysisAndSimulation\ScientificWritingC08\Dataset NACA0015 Velocity and Standard deviation.csv',
+        index_col=0, delimiter=",", skipinitialspace=True)
+>>>>>>> e612c781f46beef2d09ec211122412a56a608dc3
     df.columns = df.columns.str.replace("\ufeff", "").str.strip()
     for col in cols:
         if col not in df.columns:
@@ -119,7 +125,34 @@ def load_velocity_arrays_fast(url = "https://media.githubusercontent.com/media/R
     df[cols] = df[cols].replace([np.inf, -np.inf], np.nan).fillna(0).astype("float32")
     return tuple(df[col].to_numpy() for col in cols)
 
+<<<<<<< HEAD
 def visualize_airfoil_piv(x, y, z, u, v, w, type,stl_path= 'N15- Smooth 15 deg.stl'):
+=======
+
+def compute_Q_field(grid):
+    """
+    Computes the Q-criterion field on the given structured PyVista grid
+    (which must already have a 'velocity' point array).
+    Returns Q as a 1-D numpy array aligned with grid points, in SI units (s^-2).
+    """
+    deriv = grid.compute_derivative(scalars="velocity", gradient=True)
+    grad = deriv["gradient"].reshape(-1, 3, 3)
+
+    S = 0.5 * (grad + np.transpose(grad, (0, 2, 1)))
+    Omega = 0.5 * (grad - np.transpose(grad, (0, 2, 1)))
+
+    S2 = np.sum(S ** 2, axis=(1, 2))
+    Omega2 = np.sum(Omega ** 2, axis=(1, 2))
+
+    Q = 0.5 * (Omega2 - S2)
+    Q = Q / 1e6  # mm -> m unit correction
+    return Q
+
+
+def visualize_airfoil_piv(x, y, z, u, v, w, type,
+                           stl_path=r"C:\Users\Daria\Desktop\Test_AnalysisAndSimulation\ScientificWritingC08\N15- Smooth 15 deg.stl",
+                           plane_x=147.7, plane_z=-37.4, plane_y=None):
+>>>>>>> e612c781f46beef2d09ec211122412a56a608dc3
     # -----------------------------
     # 1. Load STL
     # -----------------------------
@@ -128,292 +161,158 @@ def visualize_airfoil_piv(x, y, z, u, v, w, type,stl_path= 'N15- Smooth 15 deg.s
     # -----------------------------
     # 2. Build Structured Grid
     # -----------------------------
-    # Your data is (Nz, Ny, Nx)
     Nz, Ny, Nx = x.shape
 
-    # Stack coordinates properly
     points = np.stack((x, y, z), axis=-1)
-
     grid = pv.StructuredGrid()
     grid.points = points.reshape(-1, 3)
     grid.dimensions = (Nx, Ny, Nz)
 
-    # Velocity field
     velocity = np.stack((u, v, w), axis=-1)
     grid["velocity"] = velocity.reshape(-1, 3)
 
-    # Velocity magnitude
     speed = np.linalg.norm(velocity, axis=-1)
     grid["speed"] = speed.reshape(-1)
 
     # -----------------------------
-    # 3. (Optional) Align STL to data
+    # 3. Align STL & Set Visual Crop Domain Bounds
     # -----------------------------
-    # Shift STL to match grid center
     grid_center = np.array(grid.center)
     mesh_center = np.array(mesh.center)
-
     mesh.translate(grid_center - mesh_center)
 
-    # -----------------------------
-    # 4. Create slices
-    # -----------------------------
+    xmin, xmax, ymin, ymax, zmin, zmax = grid.bounds
+    
+    # Redefine the minimum X window boundary for visual display items
+    display_xmin = -50.0
+    crop_bounds = [display_xmin, xmax, ymin, ymax, zmin, zmax]
 
-    #slice = grid.slice(normal='y', origin=[0,grid.center[1],0])
-    min_val, max_val = y.min(), y.max()
-    positions = np.linspace(min_val, max_val-80, 5)
-    plotter = pv.Plotter()
+    mesh_clipped = mesh.clip_box(bounds=crop_bounds, invert=False)
 
-    center = grid.center
+    # -----------------------------
+    # 4. Plotter setup
+    # -----------------------------
+    plotter = pv.Plotter(off_screen=False)
+
+    # Add the standard Spanwise Slice Plane if requested
+    if plane_y is not None:
+        xz_plane = pv.Plane(
+            center=((display_xmin + xmax) / 2, plane_y, (zmin + zmax) / 2),
+            direction=(0, 1, 0),
+            i_size=(xmax - display_xmin),
+            j_size=(zmax - zmin),
+            i_resolution=1,
+            j_resolution=1
+        )
+        plotter.add_mesh(xz_plane, color="red", opacity=0.4, show_edges=True, edge_color="red", label="Spanwise Cut")
+
+    # -------------------------------------------------------------
+    # Integration Boundaries as physical 3D Planes (Bounded at X = -50)
+    # -------------------------------------------------------------
+    # Wake Boundary Plane (Vertical cut along constant X value)
+    if plane_x is not None and plane_x >= display_xmin:
+        wake_plane = pv.Plane(
+            center=(plane_x, (ymin + ymax) / 2, (zmin + zmax) / 2),
+            direction=(1, 0, 0),  # Orthogonal to X-axis
+            i_size=(ymax - ymin),
+            j_size=(zmax - zmin),
+            i_resolution=1,
+            j_resolution=1
+        )
+        plotter.add_mesh(wake_plane, color="darkred", opacity=0.5, show_edges=True, edge_color="darkred")
+
+    # Above Wing Boundary Plane (Horizontal cut along constant Z value)
+    if plane_z is not None:
+        above_wing_plane = pv.Plane(
+            center=((display_xmin + xmax) / 2, (ymin + ymax) / 2, plane_z),
+            direction=(0, 0, 1),  # Orthogonal to Z-axis
+            i_size=(xmax - display_xmin),
+            j_size=(ymax - ymin),
+            i_resolution=1,
+            j_resolution=1
+        )
+        plotter.add_mesh(above_wing_plane, color="green", opacity=0.5, show_edges=True, edge_color="green")
+
     if type == 'v':
+        min_val, max_val = y.min(), y.max()
+        positions = np.linspace(min_val, max_val - 80, 5)
         slices = []
-
         for pos in positions:
-            origin = list(center)
+            origin = list(grid.center)
             origin[1] = pos
-
             slice_plane = grid.slice(normal='y', origin=origin)
+            if slice_plane.n_points > 0:
+                slices.append(slice_plane.clip_box(bounds=crop_bounds, invert=False))
 
-            if slice_plane.n_points > 0:   # avoid empty slices
-                slices.append(slice_plane)
-        #slices = grid.slice_along_axis(n=5, axis='y')
-        #slices = grid.slice_orthogonal(x=None, y=None, z=None)
+        plotter.add_mesh(mesh_clipped, color="lightgray")
+        for sl in slices:
+            plotter.add_mesh(sl, scalars="speed", cmap="jet", opacity=0.9)
 
-        # -----------------------------
-        # 5. Plot
-        # -----------------------------
-
-        # Airfoil surface
-        plotter.add_mesh(mesh, color="lightgray")
-
-        # Velocity slices
-        for slice in slices:
-            plotter.add_mesh(
-                slice,
-                scalars="speed",
-                cmap="jet",
-                opacity=0.9
-            )
-    #plotter.add_mesh(slice_plane, scalars='speed', cmap='jet', opacity=0.9)
-    """
-    if type == 'q':
-        #grid = grid.gaussian_smooth(radius_factor=1.5)
-        # -----------------------------
-        # 4. Compute velocity gradient
-        # -----------------------------
-        # Number of cells to remove from each boundary
-        
-        pad = 15   # try 2–5 depending on your grid
-
-        mask = np.zeros_like(x, dtype=bool)
-
-        mask[pad:-pad, pad:-pad, pad:-pad] = True
-
-        # Flatten mask to match grid
-        mask_flat = mask.reshape(-1)
-
-        # Extract only interior points
-        grid = grid.extract_points(mask_flat, adjacent_cells=True)
-        deriv = grid.compute_derivative(scalars="velocity", gradient=True)
-        grad = deriv["gradient"].reshape(-1, 3, 3)
-
-        # -----------------------------
-        # 5. Compute Q-criterion (vectorized)
-        # -----------------------------
-        S = 0.5 * (grad + np.transpose(grad, (0, 2, 1)))      # strain tensor
-        Omega = 0.5 * (grad - np.transpose(grad, (0, 2, 1)))  # rotation tensor
-
-        S2 = np.sum(S**2, axis=(1, 2))
-        Omega2 = np.sum(Omega**2, axis=(1, 2))
-
-        Q = 0.5 * (Omega2 - S2)
-        Q = Q/1e6
-        Nx_int = Nx - 2*pad
-        Ny_int = Ny - 2*pad
-        Nz_int = Nz - 2*pad
-        matq = Q.reshape(Nz_int,Ny_int,Nx_int)
-        yspn = []
-        spn = []
-        for i in range(len(matq[0,:,0])):
-            yspn.append(sum(matq[:,i,:]))
-            spn.append(y[0,i+15,0])
-        plt.ion()
-        plt.plot(spn, yspn, '-o')
-        plt.set_xlabel('Spanwise location (m)')
-        plt.set_ylabel('Integrated Q (s^-2)')
-        plt.set_title('Spanwise Q integral')
-        plt.show()
-
-        grid["Q"] = Q
-
-        # -----------------------------
-        # 6. Choose threshold (tunable!)
-        # -----------------------------
-        q_threshold = np.percentile(Q, 98)
-
-        # -----------------------------
-        # 7. Extract vortex structures
-        # -----------------------------
-        vortices = grid.contour(
-            isosurfaces=[q_threshold],
-            scalars="Q"
-        )
-
-        # -----------------------------
-        # 8. Plot
-        # -----------------------------
-        plotter.add_mesh(mesh, color="lightgray", opacity=1.0)
-
-        plotter.add_mesh(
-            vortices,
-            scalars="speed",
-            cmap="plasma",
-            opacity=1.0
-        )
-    """
     if type == 'q':
         # -----------------------------
-        # 4. Compute velocity gradient
+        # Compute Q
         # -----------------------------
-        deriv = grid.compute_derivative(scalars="velocity", gradient=True)
-        grad = deriv["gradient"].reshape(-1, 3, 3)
-
-        # -----------------------------
-        # 5. Compute Q-criterion
-        # -----------------------------
-        S = 0.5 * (grad + np.transpose(grad, (0, 2, 1)))
-        Omega = 0.5 * (grad - np.transpose(grad, (0, 2, 1)))
-
-        S2 = np.sum(S**2, axis=(1, 2))
-        Omega2 = np.sum(Omega**2, axis=(1, 2))
-
-        Q = 0.5 * (Omega2 - S2)
-
-        # Unit correction (mm → m)
-        Q = Q / 1e6
-
-        # Store for PyVista
+        Q = compute_Q_field(grid)
         grid["Q"] = Q
 
-
-        # -----------------------------
-        # 6. Reshape to structured grid
-        # -----------------------------
         Q_3D = Q.reshape(Nz, Ny, Nx)
 
-        # -----------------------------
-        # 7. Mask boundaries (NO extraction!)
-        # -----------------------------
         pad = 15
-
         mask = np.zeros_like(Q_3D, dtype=bool)
         mask[pad:-pad, pad:-pad, pad:-pad] = True
-
         Q_3D_filtered = np.where(mask, Q_3D, 0.0)
-
-        # -----------------------------
-        # 8. Spanwise Q integral
-        # -----------------------------
-        # Sum over x and y → function of z (span)
-        q_threshold = np.percentile(Q, 98)
-
-        Q_span = np.sum(Q_3D_filtered, axis=(0, 2))
         Q_filtered_flat = Q_3D_filtered.reshape(-1)
         grid["Q"] = Q_filtered_flat
-        z_span = y[0, :, 0]   # spanwise coordinate
+
+        # Calculate absolute Q_max for fractional calculation scaling
+        Q_positive = Q_filtered_flat[Q_filtered_flat > 0]
+        Q_max = float(Q_positive.max()) if Q_positive.size > 0 else 1.0
 
         # -----------------------------
-        # 9. Matplotlib plot (non-blocking)
+        # Fractional Selection Logic
         # -----------------------------
-        plt.ion()
-        plt.figure()
-
-        plt.plot(z_span, Q_span, '-o')
-        plt.xlabel('Spanwise location (mm)')
-        plt.ylabel('Integrated Q')
-        plt.title('Spanwise Q integral')
-        plt.grid()
-
-        plt.show()
-
-        # -----------------------------
-        # 10. 3D vortex visualization
-        # -----------------------------
-
-        vortices = grid.contour(
-            isosurfaces=[q_threshold],
-            scalars="Q"
-        )
-
-        # Airfoil
-        plotter.add_mesh(mesh, color="lightgray", opacity=1.0)
-
-        # Vortex structures
-        plotter.add_mesh(
-            vortices,
-            scalars="speed",
-            cmap="plasma",
-            opacity=1.0
-        )
+        print("\n" + "="*60)
+        print(f"Calculated Maximum Positive Q (Q_max) = {Q_max:.4f} 1/s^2")
+        print("Choose an alpha value (fraction of Q_max) for the 3D visualization.")
+        print("="*60)
+        
+        while True:
+            user_input = input("Enter alpha value as a fraction (e.g., 0.05 or 0.15): ").strip()
+            try:
+                alpha = float(user_input)
+                q_threshold = alpha * Q_max
+                print(f"-> Selected alpha: {alpha}")
+                print(f"-> Resulting Threshold (alpha * Q_max): {q_threshold:.4f} 1/s^2\n")
+                break
+            except ValueError:
+                print("Invalid input. Please enter a numerical fraction value.")
 
         # -----------------------------
-        # 11. Show PyVista (non-blocking)
+        # Q vortex core extraction visualization
         # -----------------------------
-    #plotter.show(auto_close=False)
-    # Add axes + better view
-    plotter.show(auto_close=False)  # keeps window open but doesn't block Python
+        vortices = grid.contour(isosurfaces=[q_threshold], scalars="Q")
+        vortices_clipped = vortices.clip_box(bounds=crop_bounds, invert=False)
+        
+        plotter.add_mesh(mesh_clipped, color="lightgray", opacity=1.0)
+        plotter.add_mesh(vortices_clipped, scalars="speed", cmap="plasma", opacity=1.0)
+
+    plotter.render()
     plotter.add_axes()
     plotter.show_grid()
-
-    # Nice camera angle
-    plotter.camera_position = 'zy'
-    plt.plot()
+    
+    plotter.view_isometric()
+    plotter.camera.up = (0, 0, -1)
+    plotter.show()
 
 
 if __name__ == "__main__":
-
-    
-    #current_dir = os.path.dirname(__file__) #Check file path of this file
-    #file_path = os.path.join(current_dir, 'Dataset NACA0015 Velocity and Standard deviation.csv') #Build the file path for the dataset
-
-    #df = pd.read_csv(file_path, index_col=0, delimiter=",", skipinitialspace=True)
-    a = np.array([0,1,2,3,0,1,2,3,0,1,2,3])
-    b = np.array([0,0,0,0,1,1,1,1,2,2,2,2])
-    c = np.array([20,20,20,20,20,20,20,20,20,20,20,20])
-    #print(a.reshape(3,4,1))
-    #print(b.reshape(3,4,1))
-    #print(c.reshape(3,4,1))
-    
-    
-    #data = pd.read_csv(r'C:\Users\alexa\OneDrive\Desktop\ScientificWritingC08\cleaned_dataset.csv')
-    #x = data["x [mm]"].to_numpy()
-    #y = data["y [mm]"].to_numpy()
-    #z = data["z [mm]"].to_numpy()
-    #u = data["Velocity u [m/s]"].to_numpy()
-    #v = data["Velocity v [m/s]"].to_numpy()
-    #w = data["Velocity w [m/s]"].to_numpy()
-    #print(x[0])
-    
-    x, y, z, u, v, w, std_V, std_Vx, std_Vy, std_Vz = load_velocity_arrays_fast()
+    x, y, z, u, v, w, std_V, std_Vx, stdf_Vy, std_Vz = load_velocity_arrays_fast()
     print('hello')
-    x = x.reshape(123,137,180)
-    #print(x[0][0][0])
-    y = y.reshape(123,137,180)
-    z = z.reshape(123,137,180)
-    u = u.reshape(123,137,180)
-    v= v.reshape(123,137,180)
-    w = w.reshape(123,137,180)
-    #print(np.transpose(x[:,80,:]))
-    #print(np.transpose(x[:,80,:]))
+    x = x.reshape(123, 137, 180)
+    y = y.reshape(123, 137, 180)
+    z = z.reshape(123, 137, 180)
+    u = u.reshape(123, 137, 180)
+    v = v.reshape(123, 137, 180)
+    w = w.reshape(123, 137, 180)
 
-    #print(z)
-    #print(x[:,70,:])
-
-    #print(y[0,70,0])
-    #print(x[:,70,:])
-    #print(z[:,70,:])
-    visualize_airfoil_piv(x,y,z,u,v,w,'q')
-    #print(Plt2DStreamVisu(x[:,70,:],z[:,70,:],u[:,70,:],v[:,70,:]))
-    
-
-
+    visualize_airfoil_piv(x, y, z, u, v, w, 'q', plane_y=None)
